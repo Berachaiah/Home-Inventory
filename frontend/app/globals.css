@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: #FAF9F5;
+  color: #1C1F1B;
+}
+
+/* Shelf-tick: a left accent bar used on item rows, colored by stock/expiry status */
+.shelf-tick {
+  border-left-width: 3px;
+  border-left-style: solid;
+}
+
+.status-good { border-left-color: #2F5D50; }
+.status-moderate { border-left-color: #6B8F7F; }
+.status-low { border-left-color: #B5651D; }
+.status-out { border-left-color: #A63D40; }
+
+.focus-ring:focus-visible {
+  outline: 2px solid #2F5D50;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
