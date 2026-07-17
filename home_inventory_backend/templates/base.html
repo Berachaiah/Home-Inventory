@@ -168,7 +168,7 @@
 
 <body>
 <div class="layout">
-<aside class="sidebar">
+<aside class="sidebar fixed inset-y-0 left-0 z-40 w-64 -translate-x-full transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto">
   <div class="sidebar-brand">
     <span class="brand-name">Home Inventory</span>
     <span class="brand-sub">Store Management</span>
@@ -505,5 +505,29 @@ if ("serviceWorker" in navigator) {
 }
 </script>
     <script src="/static/js/pwa-manager.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Locate target elements (handles common class/ID definitions for navigation menus)
+            const mobileBtn = document.querySelector("[aria-label="toggle-sidebar"], button.mobile-menu-btn, #mobile-menu-btn");
+            const sidebar = document.querySelector("aside, .sidebar, #sidebarMenu, [id*="sidebar"]");
+            
+            if (mobileBtn && sidebar) {
+                mobileBtn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    // Toggle visibility states cleanly
+                    sidebar.classList.toggle("-translate-x-full");
+                    sidebar.classList.toggle("hidden");
+                });
+                
+                // Close sidebar if clicking outside of it on a mobile layout screen viewport
+                document.addEventListener("click", function(e) {
+                    if (!sidebar.contains(e.target) && !mobileBtn.contains(e.target)) {
+                        sidebar.classList.add("-translate-x-full");
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
