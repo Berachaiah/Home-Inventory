@@ -27,6 +27,14 @@ class UserOut(BaseModel):
     is_active: bool
 
 
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -137,6 +145,11 @@ class WithdrawalOut(BaseModel):
     purpose: str
     notes: str
     withdrawn_at: datetime
+
+
+class WithdrawalLogOut(WithdrawalOut):
+    item_name: str = ""
+    username: str = ""
 
 
 # ---------- Restock ----------

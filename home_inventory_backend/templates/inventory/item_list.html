@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Inventory{% endblock %}
+{% block page_title %}Inventory{% endblock %}
+{% block breadcrumb %}All Items{% endblock %}
+{% block top_actions %}{% if user.is_manager() %}<a href="{{ url_for('item_create') }}" class="btn btn-primary">➕ Add Item</a>{% endif %}{% endblock %}
+{% block content %}
+<form method="get" class="filter-bar">
+  <input type="text" name="q" value="{{ q }}" placeholder="🔍 Search items..." class="form-control search-input">
+  <select name="category" class="form-control">
+    <option value="">All Categories</option>
+    {% for cat in categories %}<option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat('s') %}selected{% endif %}>{{ cat.name }}</option>{% endfor %}
+  </select>
+  <select name="room" class="form-control">
+    <option value="">All Rooms</option>
+    {% for room in rooms %}<option value="{{ room.id }}" {% if selected_room == room.id|stringformat('s') %}selected{% endif %}>{{ room.name }}</option>{% endfor %}
+  </select>
+  <select name="status" class="form-control">
+    <option value="">All Status</option>
+    <option value="good" {% if selected_status == 'good' %}selected{% endif %}>Well Stocked</option>
+    <option value="moderate" {% if selected_status == 'moderate' %}selected{% endif %}>Moderate</option>
+    <option value="low" {% if selected_status == 'low' %}selected{% endif %}>Low Stock</option>
+    <option value="out" {% if selected_status == 'out' %}selected{% endif %}>Out of Stock</option>
+  </select>
+  <button type="submit" class="btn btn-primary">Filter</button>
+  <a href="{{ url_for('item_list') }}" class="btn btn-outline">Clear</a>
+</form>
+<div class="card">
+  <div class="card-header"><span class="card-title">{{ items_with_status|length }} Item{{ items_with_status|length|pluralize }}</span></div>
+  <div class="table-wrapper"><table>
+    <thead><tr><th>Item</th><th>Category</th><th>Room</th><th>Stock</th><th>Stock Status</th><th>Nearest Expiry</th><th>Expiry Status</th>{% if user.is_manager() %}<th>Actions</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for item, stock_status, expiry_status in items_with_status %}
+    <tr>
+      <td><a href="{{ url_for('item_detail', item.id) }}" style="color:var(--navy);font-weight:700;text-decoration:none;">{{ item.name }}</a>{% if item.brand %}<div class="text-muted text-sm">{{ item.brand }}</div>{% endif %}</td>
+      <td class="text-muted">{{ item.category|djdefault('—') }}</td>
+      <td class="text-muted">{{ item.room|djdefault('—') }}</td>
+      <td><strong>{{ item.total_quantity() }}</strong> <span class="text-muted text-sm">{{ item.unit_type }}</span></td>
+      <td><span class="badge badge-{{ stock_status }}">{{ stock_status|title }}</span></td>
+      <td class="text-muted">{{ item.earliest_expiry()|djdefault('—') }}</td>
+      <td>{% if expiry_status != 'none' %}<span class="badge badge-{{ expiry_status }}">{{ expiry_status|title }}</span>{% else %}—{% endif %}</td>
+      {% if user.is_manager() %}
+      <td><div class="flex-gap">
+        <a href="{{ url_for('batch_add', item.id) }}" class="btn btn-success btn-sm">+ Stock</a>
+        <a href="{{ url_for('item_edit', item.id) }}" class="btn btn-outline btn-sm">Edit</a>
+        <a href="{{ url_for('item_delete', item.id) }}" class="btn btn-danger btn-sm">Del</a>
+      </div></td>
+      {% endif %}
+    </tr>
+    {% else %}<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><p>No items found. {% if user.is_manager() %}<a href="{{ url_for('item_create') }}">Add your first item</a>.{% endif %}</p></div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block breadcrumb %}Welcome back, {{ user.full_name() }}{% endblock %}
+{% block top_actions %}
+<a href="{{ url_for('withdraw_item') }}" class="btn btn-accent" id="tour-take-btn">🛒 Take Item</a>
+{% if user.is_manager() %}<a href="{{ url_for('item_create') }}" class="btn btn-primary" id="tour-add-btn">➕ Add Item</a>{% endif %}
+{% endblock %}
+{% block content %}
+
+<div class="alert alert-info" id="tour-desc" style="margin-bottom:20px;">
+  📊 <strong>Your store at a glance.</strong> This dashboard shows everything important — items running low, products expiring soon, and who has been taking things from the store. Check here daily to stay on top of your inventory.
+</div>
+
+{% if active_plan and user.is_manager() %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  🛍️ <strong>Active Restock Plan:</strong> "{{ active_plan.name }}" is currently <strong>{{ active_plan.status.value }}</strong> with {{ active_plan.items|length }} item{{ active_plan.items|length|pluralize }}.
+  <a href="{{ url_for('plan_detail', active_plan.id) }}" style="color:var(--amber);font-weight:700;margin-left:8px;">Open Plan →</a>
+</div>
+{% endif %}
+
+<div class="stat-grid">
+  <div class="stat-card navy" id="tour-stat-total"><div class="stat-icon navy">📦</div><div class="stat-value">{{ total_items }}</div><div class="stat-label">Total Items Tracked</div></div>
+  <div class="stat-card {% if low_stock_count > 0 %}amber{% else %}green{% endif %}" id="tour-stat-low"><div class="stat-icon {% if low_stock_count > 0 %}amber{% else %}green{% endif %}">⚠️</div><div class="stat-value">{{ low_stock_count }}</div><div class="stat-label">Low / Out of Stock</div></div>
+  <div class="stat-card {% if expired_count > 0 %}red{% elif expiring_soon %}amber{% else %}green{% endif %}" id="tour-stat-expiry"><div class="stat-icon {% if expired_count > 0 %}red{% elif expiring_soon %}amber{% else %}green{% endif %}">📅</div><div class="stat-value">{{ expiring_soon|length }}</div><div class="stat-label">Expiring Within 30 Days</div></div>
+  {% if user.is_admin() %}<div class="stat-card amber" id="tour-stat-cost"><div class="stat-icon amber">💰</div><div class="stat-value">₦{{ restock_cost|floatformat(0) }}</div><div class="stat-label">Est. Restock Cost</div></div>{% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+  <div class="card" id="tour-expiry-panel">
+    <div class="card-header"><span class="card-title">⏳ Expiring Soon</span><a href="{{ url_for('item_list') }}" class="btn btn-outline btn-sm">View All</a></div>
+    {% if expiring_soon %}
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Item</th><th>Batch</th><th>Expiry</th><th>Status</th></tr></thead>
+      <tbody>{% for batch in expiring_soon %}
+      <tr>
+        <td><a href="{{ url_for('item_detail', batch.item.id) }}" style="color:var(--navy);font-weight:600;text-decoration:none;">{{ batch.item.name }}</a></td>
+        <td class="text-muted">#{{ batch.id }}</td>
+        <td>{{ batch.expiry_date }}</td>
+        <td><span class="badge badge-{{ batch.expiry_status() }}">{{ batch.expiry_status()|title }}</span></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<div class="empty-state" style="padding:30px;"><div class="empty-icon">✅</div><p>No items expiring soon.</p></div>{% endif %}
+    {% if expired_count > 0 %}<div class="alert alert-error" style="margin:0 16px 16px;">❌ <strong>{{ expired_count }} batch{{ expired_count|pluralize('es') }} already expired</strong> — check your inventory.</div>{% endif %}
+  </div>
+
+  <div class="card" id="tour-lowstock-panel">
+    <div class="card-header"><span class="card-title">📉 Low Stock Items</span><a href="{{ url_for('item_list') }}?status=low" class="btn btn-outline btn-sm">View All</a></div>
+    {% if low_stock_items %}
+    <div class="table-wrapper"><table>
+      <thead><tr><th>Item</th><th>Stock</th><th>Status</th></tr></thead>
+      <tbody>{% for item in low_stock_items %}
+      <tr>
+        <td><a href="{{ url_for('item_detail', item.id) }}" style="color:var(--navy);font-weight:600;text-decoration:none;">{{ item }}</a></td>
+        <td>{{ item.total_quantity() }} {{ item.unit_type }}</td>
+        <td><span class="badge badge-{{ item.stock_status() }}">{{ item.stock_status()|title }}</span></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<div class="empty-state" style="padding:30px;"><div class="empty-icon">✅</div><p>All items well stocked.</p></div>{% endif %}
+  </div>
+</div>
+
+<div class="card mt-3" id="tour-recent-withdrawals">
+  <div class="card-header"><span class="card-title">🕐 Recent Withdrawals</span><a href="{{ url_for('withdrawal_log') }}" class="btn btn-outline btn-sm">Full Log</a></div>
+  {% if recent_withdrawals %}
+  <div class="table-wrapper"><table>
+    <thead><tr><th>Date & Time</th><th>Item</th><th>Batch</th><th>Qty Taken</th><th>Remaining</th><th>Taken By</th><th>Purpose</th></tr></thead>
+    <tbody>{% for log in recent_withdrawals %}
+    <tr>
+      <td class="text-muted text-sm">{{ log.withdrawn_at|djdate('d M Y, g:i A') }}</td>
+      <td><strong>{{ log.batch.item.name }}</strong></td>
+      <td class="text-muted">#{{ log.batch.id }}</td>
+      <td><strong>{{ log.quantity_taken }}</strong></td>
+      <td class="text-muted">{{ log.quantity_remaining_after }}</td>
+      <td>{{ log.user.full_name() if log.user else 'Unknown' }}</td>
+      <td class="text-muted">{{ log.purpose|djdefault('—') }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<div class="empty-state" style="padding:30px;"><div class="empty-icon">📋</div><p>No withdrawals recorded yet.</p></div>{% endif %}
+</div>
+{% endblock %}
+
+{% block tour_script %}
+<script>
+function startTour() {
+  var isManager = {% if user.is_manager() %}true{% else %}false{% endif %};
+  var isAdmin = {% if user.is_admin() %}true{% else %}false{% endif %};
+
+  var steps = [
+    {
+      intro: "<h3 style='margin:0 0 8px;color:#0f2540;'>👋 Welcome to Home Inventory!</h3><p>This quick tour will walk you through all the key features. Click <strong>Next</strong> to continue, or <strong>Skip</strong> to explore on your own.</p>"
+    },
+    {
+      element: document.getElementById('tour-desc'),
+      intro: "<strong>📊 Dashboard Overview</strong><br><br>This is your home screen. Every time you log in, you'll see a summary of what's happening in your store — stock levels, expiry alerts, and recent activity.",
+      position: 'bottom'
+    },
+    {
+      element: document.getElementById('tour-stat-total'),
+      intro: "<strong>📦 Total Items</strong><br><br>How many different types of items are currently tracked in your store. Click <em>All Items</em> in the sidebar to see the full list.",
+      position: 'right'
+    },
+    {
+      element: document.getElementById('tour-stat-low'),
+      intro: "<strong>⚠️ Low / Out of Stock</strong><br><br>Items running low or completely finished. When this is above zero, it's time to restock. You can set a custom threshold for each item — e.g. alert when rice drops below 2 bags.",
+      position: 'right'
+    },
+    {
+      element: document.getElementById('tour-stat-expiry'),
+      intro: "<strong>📅 Expiring Soon</strong><br><br>Items with an expiry date within 30 days. The system tracks each batch separately — so if you bought the same product twice, it knows which one expires first and alerts you about that one.",
+      position: 'right'
+    },
+    {
+      element: document.getElementById('tour-expiry-panel'),
+      intro: "<strong>⏳ Expiry Panel</strong><br><br>Exactly which batches are expiring, their batch number, and their status:<br><br>• <span style='color:#d97706;font-weight:600;'>Warning</span> = within 30 days<br>• <span style='color:#d97706;font-weight:600;'>Critical</span> = within 7 days<br>• <span style='color:#dc2626;font-weight:600;'>Expired</span> = already past expiry date",
+      position: 'top'
+    },
+    {
+      element: document.getElementById('tour-lowstock-panel'),
+      intro: "<strong>📉 Low Stock Panel</strong><br><br>Items that need restocking soon. Click any item name to see its full details, all its batches, and its withdrawal history.",
+      position: 'top'
+    },
+    {
+      element: document.getElementById('tour-recent-withdrawals'),
+      intro: "<strong>🕐 Recent Withdrawals</strong><br><br>Every time someone takes something from the store, it is recorded here — their name, the time, how much they took, and which batch it came from. Nothing leaves the store without a record.",
+      position: 'top'
+    },
+    {
+      element: document.getElementById('tour-take-btn'),
+      intro: "<strong>🛒 Taking Items</strong><br><br>When you or anyone else takes something from the store, use this button. Pick the item, enter the quantity, and optionally add a purpose. The system automatically deducts from the oldest batch first.",
+      position: 'bottom'
+    }
+  ];
+
+  if (isManager) {
+    steps.push({
+      element: document.getElementById('tour-add-btn'),
+      intro: "<strong>➕ Adding Items & Stock</strong><br><br>As Manager or Admin, you can add new items and record new purchases as batches. The process is 2 steps: first you create the item, then you immediately record the first stock purchase — including the expiry date.",
+      position: 'bottom'
+    });
+  }
+
+  steps.push(
+    {
+      element: document.getElementById('nav-items'),
+      intro: "<strong>📦 All Items</strong><br><br>See everything in your store. Filter by category, room, or stock status. Click any item to see all its batches, prices, and full withdrawal history.",
+      position: 'right'
+    },
+    {
+      element: document.getElementById('nav-take'),
+      intro: "<strong>🛒 Take Item</strong><br><br>Use this every time something leaves the store. Always record it — this is how the inventory stays accurate.",
+      position: 'right'
+    },
+    {
+      element: document.getElementById('nav-log'),
+      intro: "<strong>📋 Withdrawal Log</strong><br><br>Complete history of everything taken — who took it, when, how much. Managers and Admins can filter by person, item, or date range.",
+      position: 'right'
+    }
+  );
+
+  if (isManager) {
+    steps.push(
+      {
+        element: document.getElementById('nav-restock'),
+        intro: "<strong>🛍️ Restock Planner</strong><br><br>This is where you plan your shopping trips. Create a plan, add items you need to buy, set quantities and estimated prices to get a total budget. When you return from shopping, mark each item as restocked and the inventory updates <em>automatically</em> — no manual batch entry needed.",
+        position: 'right'
+      },
+      {
+        element: document.getElementById('nav-reports'),
+        intro: "<strong>📊 Reports</strong><br><br>Generate a full inventory report as <strong>PDF</strong> or <strong>Excel</strong>. Covers 4 sections: current stock snapshot, all withdrawals, expiry status, and restock cost estimate. Choose any time period.",
+        position: 'right'
+      },
+      {
+        element: document.getElementById('nav-categories'),
+        intro: "<strong>🏷️ Categories & Rooms</strong><br><br>Organise your inventory by product type (e.g. Beverages, Cleaning Supplies) and physical location (e.g. Main Store, Kitchen). These help you filter and find things quickly.",
+        position: 'right'
+      }
+    );
+  }
+
+  if (isAdmin) {
+    steps.push({
+      element: document.getElementById('nav-users'),
+      intro: "<strong>👥 Managing Users</strong><br><br>Create accounts for family members and staff. 3 roles:<br><br>• <strong>Admin</strong> — full access including prices and user management<br>• <strong>Manager</strong> — can add stock, create restock plans, generate reports<br>• <strong>Member</strong> — can take items and view inventory only",
+      position: 'right'
+    });
+  }
+
+  steps.push({
+    intro: "<h3 style='margin:0 0 8px;color:#0f2540;'>🎉 You're all set!</h3><p>That's everything you need to know. Remember — whenever you need this tour again, click the <strong>❓ Help Tour</strong> button in the top right corner of any page.</p><br><p style='font-size:12px;color:#64748b;'>Most important habit: always record items when they are taken from the store. That's what keeps everything accurate.</p>"
+  });
+
+  introJs().setOptions({
+    steps: steps,
+    showProgress: true,
+    showBullets: false,
+    exitOnOverlayClick: false,
+    nextLabel: 'Next →',
+    prevLabel: '← Back',
+    doneLabel: '✅ Got it!',
+    skipLabel: 'Skip Tour',
+    tooltipClass: 'akanbi-tour',
+  }).oncomplete(function() {
+    localStorage.setItem('akanbi_tour_done_{{ user.id }}', '1');
+  }).onexit(function() {
+    localStorage.setItem('akanbi_tour_done_{{ user.id }}', '1');
+  }).start();
+}
+
+// Auto-start on first login only
+document.addEventListener('DOMContentLoaded', function() {
+  var tourKey = 'akanbi_tour_done_{{ user.id }}';
+  if (!localStorage.getItem(tourKey)) {
+    setTimeout(startTour, 800);
+  }
+});
+</script>
+<style>
+.akanbi-tour .introjs-tooltip{max-width:340px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.akanbi-tour .introjs-tooltiptext{font-size:14px;line-height:1.6;color:#1e293b;}
+.akanbi-tour .introjs-button{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;border-radius:7px;padding:7px 16px;}
+.akanbi-tour .introjs-nextbutton{background:#1a3c5e;color:white;border-color:#1a3c5e;}
+.akanbi-tour .introjs-nextbutton:hover{background:#2a5480;}
+.akanbi-tour .introjs-prevbutton{color:#1a3c5e;}
+.akanbi-tour .introjs-skipbutton{color:#64748b;font-size:13px;}
+.akanbi-tour .introjs-progressbar{background:#1a3c5e;}
+.introjs-helperLayer{border-radius:10px;}
+</style>
+{% endblock %}

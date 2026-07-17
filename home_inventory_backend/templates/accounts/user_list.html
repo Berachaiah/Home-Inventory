@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Manage Users{% endblock %}
+{% block page_title %}Manage Users{% endblock %}
+{% block breadcrumb %}Settings → Users{% endblock %}
+{% block top_actions %}<a href="{{ url_for('user_create') }}" class="btn btn-primary">➕ Add User</a>{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="card-header"><span class="card-title">All Users ({{ users|length }})</span></div>
+  <div class="table-wrapper"><table>
+    <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Phone</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    <tr>
+      <td><strong>{{ u.full_name() }}</strong></td>
+      <td class="text-muted">{{ u.username }}</td>
+      <td class="text-muted">{{ u.email|djdefault('—') }}</td>
+      <td class="text-muted">{{ u.phone|djdefault('—') }}</td>
+      <td><span class="badge badge-{{ u.role.value }}">{{ u.role.value }}</span></td>
+      <td>{% if u.is_active %}<span class="badge badge-ok">Active</span>{% else %}<span class="badge badge-out">Inactive</span>{% endif %}</td>
+      <td><div class="flex-gap">
+        <a href="{{ url_for('user_edit', u.id) }}" class="btn btn-outline btn-sm">Edit</a>
+        {% if u != user %}<a href="{{ url_for('user_delete', u.id) }}" class="btn btn-danger btn-sm">Remove</a>{% endif %}
+      </div></td>
+    </tr>
+    {% else %}<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><p>No users yet.</p></div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

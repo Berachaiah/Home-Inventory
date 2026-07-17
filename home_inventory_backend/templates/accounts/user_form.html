@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block breadcrumb %}Users → {{ title }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:600px;">
+  <div class="card-header"><span class="card-title">{{ title }}</span></div>
+  <div class="card-body">
+    <form method="post">
+    <div class="form-group"><label class="form-label">Username {% if not user_obj %}*{% endif %}</label>
+      <input type="text" name="username" class="form-control" value="{{ user_obj.username if user_obj else '' }}" {% if not user_obj %}required{% endif %} {% if user_obj %}readonly{% endif %}></div>
+    {% if not user_obj %}
+    <div class="form-group"><label class="form-label">Password *</label><input type="password" name="password" class="form-control" required></div>
+    {% endif %}
+    <div class="form-group"><label class="form-label">Email</label><input type="email" name="email" class="form-control" value="{{ user_obj.email if user_obj else '' }}"></div>
+    <div class="form-group"><label class="form-label">First Name</label><input type="text" name="first_name" class="form-control" value="{{ user_obj.first_name if user_obj else '' }}"></div>
+    <div class="form-group"><label class="form-label">Last Name</label><input type="text" name="last_name" class="form-control" value="{{ user_obj.last_name if user_obj else '' }}"></div>
+    <div class="form-group"><label class="form-label">Phone</label><input type="text" name="phone" class="form-control" value="{{ user_obj.phone if user_obj else '' }}"></div>
+    <div class="form-group"><label class="form-label">Role *</label>
+      <select name="role" class="form-control" required>
+        {% for r in ['member', 'manager', 'admin'] %}<option value="{{ r }}" {% if user_obj and user_obj.role.value == r %}selected{% endif %}>{{ r|title }}</option>{% endfor %}
+      </select>
+    </div>
+    {% if user_obj %}
+    <div class="form-group"><label class="form-label"><input type="checkbox" name="is_active" {% if user_obj.is_active %}checked{% endif %}> Active</label></div>
+    {% endif %}
+    {% if errors and errors.username %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ errors.username }}</div>{% endif %}
+    <div class="flex-gap mt-2">
+      <button type="submit" class="btn btn-primary">Save User</button>
+      <a href="{{ url_for('user_list') }}" class="btn btn-outline">Cancel</a>
+    </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

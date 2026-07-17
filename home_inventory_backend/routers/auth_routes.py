@@ -1,3 +1,4 @@
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,8 +6,8 @@ from sqlalchemy import select
 
 from database import get_db
 from models import User, RoleEnum
-from schemas import UserCreate, UserOut, Token
-from auth import hash_password, verify_password, create_access_token, get_current_user
+from schemas import UserCreate, UserOut, UserUpdate, Token
+from auth import hash_password, verify_password, create_access_token, get_current_user, require_admin
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -56,3 +57,48 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
 @router.get("/me", response_model=UserOut)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/users", response_model=List[UserOut])
+async def list_users(db: AsyncSession = Depends(get_db), _=Depends(require_admin)):
+    result = await db.execute(select(User).order_by(User.username))
+    return result.scalars().all()
+
+
+@router.put("/users/{user_id}", response_model=UserOut)
+async def update_user(
+    user_id: int, payload: UserUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)
+):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if payload.role is not None:
+        try:
+            user.role = RoleEnum(payload.role)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid role")
+    if payload.is_active is not None:
+        if user.id == current_user.id and not payload.is_active:
+            raise HTTPException(status_code=400, detail="You can't deactivate your own account")
+        user.is_active = payload.is_active
+    if payload.first_name is not None:
+        user.first_name = payload.first_name
+    if payload.last_name is not None:
+        user.last_name = payload.last_name
+    if payload.phone is not None:
+        user.phone = payload.phone
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+@router.delete("/users/{user_id}")
+async def delete_user(user_id: int, db: AsyncSession = Depends(get_db), current_user: User = Depends(require_admin)):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You can't delete your own account")
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.delete(user)
+    await db.commit()
+    return {"deleted": True}

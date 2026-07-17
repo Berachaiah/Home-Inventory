@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% block title %}Create Restock Plan{% endblock %}
+{% block page_title %}Create Restock Plan{% endblock %}
+{% block breadcrumb %}Restock Planner → New Plan{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">Plan Details</span></div>
+    <div class="card-body">
+      <form method="post"><div class="form-group">
+          <label class="form-label">Plan Name *</label>
+          <p class="form-hint" style="margin-bottom:6px;">Give this plan a recognisable name, e.g. "July Restock", "Monthly Shopping", "Before Party".</p>
+          <input type="text" name="name" id="id_name" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes <span class="text-muted text-sm">(optional)</span></label>
+          <p class="form-hint" style="margin-bottom:6px;">Any extra notes about this shopping trip.</p>
+          <textarea name="notes" id="id_notes" class="form-control" rows="2"></textarea>
+        </div>
+
+        {% if low_items %}
+        <div style="margin-bottom:20px;">
+          <label class="form-label">Auto-add low/out of stock items</label>
+          <p class="form-hint" style="margin-bottom:10px;">These items are currently low or out of stock. Tick the ones you want to add to this plan automatically.</p>
+          <div style="border:1.5px solid var(--border);border-radius:8px;overflow:hidden;">
+            {% for item in low_items %}
+            <label style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;{% if loop.last %}border-bottom:none;{% endif %}transition:background 0.1s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+              <input type="checkbox" name="auto_add_items" value="{{ item.id }}" checked style="width:16px;height:16px;accent-color:var(--navy);">
+              <div style="flex:1;">
+                <div style="font-weight:600;color:var(--navy-dark);">{{ item }}</div>
+                <div class="text-muted text-sm">{{ item.category|djdefault('—') }} · {{ item.room|djdefault('—') }} · <strong>{{ item.total_quantity() }} {{ item.unit_type }}</strong> remaining</div>
+              </div>
+              <span class="badge badge-{{ item.stock_status() }}">{{ item.stock_status()|title }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="flex-gap mt-2">
+          <button type="submit" class="btn btn-primary">Create Plan</button>
+          <a href="{{ url_for('plan_list') }}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="card-title">How the planner works</span></div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:28px;height:28px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">1</div><div><strong>Create the plan</strong><br><span class="text-muted text-sm">Name it and auto-add all low-stock items in one click.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:28px;height:28px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">2</div><div><strong>Review & adjust</strong><br><span class="text-muted text-sm">Set quantities, adjust estimated prices, add any extra items.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:28px;height:28px;background:var(--accent);color:var(--navy-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">3</div><div><strong>Go shopping</strong><br><span class="text-muted text-sm">Print the list or view it on your phone. Change status to "Shopping" so others know.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:28px;height:28px;background:var(--green);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;">4</div><div><strong>Mark as restocked</strong><br><span class="text-muted text-sm">When you return, tick off each item. The inventory is updated automatically — no need to manually add batches.</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

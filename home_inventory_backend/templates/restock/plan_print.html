@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{{ plan.name }} — Shopping List</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; color: #1e293b; background: white; padding: 32px; max-width: 800px; margin: 0 auto; }
+  .header { border-bottom: 3px solid #1a3c5e; padding-bottom: 16px; margin-bottom: 24px; }
+  .header h1 { font-size: 24px; color: #0f2540; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: #64748b; }
+  .meta { display: flex; gap: 24px; margin-bottom: 24px; padding: 14px 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+  .meta-item { font-size: 13px; } .meta-item strong { display: block; font-size: 15px; color: #0f2540; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead th { background: #1a3c5e; color: white; padding: 10px 14px; font-size: 12px; text-align: left; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  tbody tr { border-bottom: 1px solid #e2e8f0; }
+  tbody tr:nth-child(even) { background: #f8fafc; }
+  tbody td { padding: 12px 14px; font-size: 13px; vertical-align: top; }
+  .check-col { width: 32px; text-align: center; }
+  .check-box { width: 18px; height: 18px; border: 2px solid #1a3c5e; border-radius: 4px; display: inline-block; }
+  .total-row { background: #1a3c5e !important; }
+  .total-row td { color: white; font-weight: 700; padding: 12px 14px; font-size: 14px; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #64748b; display: flex; justify-content: space-between; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+  .badge-out { background: #fee2e2; color: #dc2626; }
+  .badge-low { background: #fef3c7; color: #d97706; }
+  @media print {
+    body { padding: 16px; }
+    button { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🛒 {{ plan.name }}</h1>
+  <p>Home Inventory — Shopping List</p>
+</div>
+
+<div class="meta">
+  <div class="meta-item"><strong>{{ items|length }}</strong>Items to buy</div>
+  <div class="meta-item"><strong>{{ now|djdate('d M Y') }}</strong>Date printed</div>
+  <div class="meta-item"><strong>₦{{ total|floatformat(0) }}</strong>Estimated budget</div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th class="check-col">✓</th>
+      <th>Item</th>
+      <th>Category</th>
+      <th>Packs</th>
+      <th>Units/Pack</th>
+      <th>Est. Price/Pack</th>
+      <th>Est. Total</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for pi in items %}
+    <tr>
+      <td class="check-col"><div class="check-box"></div></td>
+      <td>
+        <strong>{{ pi.item.name }}</strong>
+        {% if pi.item.brand %}<br><span style="font-size:11px;color:#64748b;">{{ pi.item.brand }}</span>{% endif %}
+        <br><span class="badge badge-{{ pi.item.stock_status() }}">{{ pi.item.stock_status()|title }}</span>
+      </td>
+      <td style="color:#64748b;">{{ pi.item.category|djdefault('—') }}</td>
+      <td><strong>{{ pi.packs_to_buy }}</strong></td>
+      <td>{{ pi.units_per_pack }}</td>
+      <td>{% if pi.estimated_price_per_pack > 0 %}₦{{ pi.estimated_price_per_pack|floatformat(0) }}{% else %}—{% endif %}</td>
+      <td>{% if pi.estimated_cost() > 0 %}<strong>₦{{ pi.estimated_cost()|floatformat(0) }}</strong>{% else %}—{% endif %}</td>
+      <td style="font-size:12px;color:#64748b;">{{ pi.notes|djdefault('') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if total > 0 %}
+  <tfoot>
+    <tr class="total-row">
+      <td colspan="6" style="text-align:right;">ESTIMATED TOTAL:</td>
+      <td>₦{{ total|floatformat(0) }}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+
+<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin-bottom:24px;">
+  <strong style="display:block;margin-bottom:8px;color:#0f2540;">📝 Reminder: When you return from shopping</strong>
+  <p style="font-size:13px;color:#64748b;line-height:1.6;">Go to <strong>Restock Planner → {{ plan.name }}</strong> and click <strong>"✅ Restocked"</strong> next to each item you bought. Enter the actual purchase date, expiry date, and price. The inventory will update automatically.</p>
+</div>
+
+<div class="footer">
+  <span>Home Inventory — Printed {{ now|djdate('d M Y, g:i A') }}</span>
+  <span>{{ plan.name }}</span>
+</div>
+
+<script>window.onload = function() { window.print(); }</script>
+</body>
+</html>

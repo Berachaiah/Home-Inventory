@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% block title %}Generate Report{% endblock %}
+{% block page_title %}Generate Report{% endblock %}
+{% block breadcrumb %}Reports{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+  <div class="card" id="tour-settings">
+    <div class="card-header"><span class="card-title">📊 Report Settings</span></div>
+    <div class="card-body">
+      <form method="get" action="/api/reports/generate"><div class="form-group" id="tour-period">
+          <label class="form-label">Report Period</label>
+          <p class="form-hint" style="margin-bottom:8px;">Choose the time period this report should cover. The report will only include withdrawal records from this period, but the inventory snapshot always shows current levels.</p>
+          <select name="period" class="form-control" id="period-select" onchange="toggleCustom(this.value)">
+            <option value="week">This Week (Last 7 days)</option>
+            <option value="month" selected>This Month</option>
+            <option value="3months">Last 3 Months</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+        </div>
+        <div id="custom-dates" style="display:none;">
+          <div class="form-grid-2">
+            <div class="form-group"><label class="form-label">From Date</label><input type="date" name="date_from" class="form-control" value="{{ today.replace(day=1) }}"></div>
+            <div class="form-group"><label class="form-label">To Date</label><input type="date" name="date_to" class="form-control" value="{{ today }}"></div>
+          </div>
+        </div>
+        <div class="form-group" id="tour-format">
+          <label class="form-label">Export Format</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:10px;padding:14px;border:2px solid var(--navy);border-radius:10px;cursor:pointer;background:rgba(26,60,94,0.04);">
+              <input type="radio" name="format" value="pdf" checked style="accent-color:var(--navy);">
+              <span><div style="font-weight:700;color:var(--navy);">📄 PDF Report</div><div class="text-muted text-sm">Printable, shareable</div></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;padding:14px;border:2px solid var(--green);border-radius:10px;cursor:pointer;background:var(--green-light);">
+              <input type="radio" name="format" value="excel" style="accent-color:var(--green);">
+              <span><div style="font-weight:700;color:var(--green);">📊 Excel Report</div><div class="text-muted text-sm">4 sheets, editable</div></span>
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:13px;font-size:15px;" id="tour-download">⬇️ Download Report</button>
+      </form>
+    </div>
+  </div>
+  <div class="card" id="tour-contents">
+    <div class="card-header"><span class="card-title">What's included in each report</span></div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:12px;"><div style="font-size:24px;">📦</div><div><strong>1. Inventory Snapshot</strong><p class="text-muted text-sm">Every item, current stock level, category, location and status at the time the report was generated.</p></div></div>
+        <div style="display:flex;gap:12px;"><div style="font-size:24px;">📋</div><div><strong>2. Withdrawal History</strong><p class="text-muted text-sm">All items taken from the store within the selected period — who took it, when, how much, and which batch it came from.</p></div></div>
+        <div style="display:flex;gap:12px;"><div style="font-size:24px;">📅</div><div><strong>3. Expiry Report</strong><p class="text-muted text-sm">All batches with expiry dates — expired, critical (within 7 days), and upcoming (within 30 days) — with exact days remaining.</p></div></div>
+        <div style="display:flex;gap:12px;"><div style="font-size:24px;">💰</div><div><strong>4. Restock Estimate</strong><p class="text-muted text-sm">Items that need restocking with estimated costs based on the last recorded purchase price per item. Grand total included.</p></div></div>
+      </div>
+      <div class="alert alert-info mt-2">ℹ️ <strong>Excel</strong> puts each section on a separate colour-coded sheet — ideal for sharing or further analysis.<br><strong>PDF</strong> is a formatted document — ideal for printing and filing.</div>
+    </div>
+  </div>
+</div>
+<script>function toggleCustom(v){document.getElementById('custom-dates').style.display=v==='custom'?'block':'none';}</script>
+{% endblock %}
+{% block tour_script %}
+<script>
+function startTour(){
+  introJs().setOptions({
+    steps:[
+      {intro:"<strong>📊 Report Generator</strong><br><br>This page lets you generate a full inventory report covering everything — current stock levels, all withdrawals, expiry status, and a restock cost estimate. You can choose the time period and export format."},
+      {element:document.getElementById('tour-period'),intro:"<strong>Choose the Time Period</strong><br><br>The time period controls which withdrawals are included in the report. The inventory snapshot always shows the current state regardless of the period you choose.",position:'right'},
+      {element:document.getElementById('tour-format'),intro:"<strong>PDF or Excel?</strong><br><br><strong>PDF</strong> is best for sharing with family, printing, or filing. It's formatted and easy to read.<br><br><strong>Excel</strong> is best if you want to analyse numbers, filter data, or share figures. Each of the 4 report sections gets its own colour-coded sheet.",position:'right'},
+      {element:document.getElementById('tour-contents'),intro:"<strong>What's Inside</strong><br><br>Every report always includes all 4 sections — you don't pick and choose. This gives you a complete picture of your inventory in one document.",position:'left'},
+      {element:document.getElementById('tour-download'),intro:"<strong>Download</strong><br><br>Click this to generate and immediately download the report. For large inventories, it may take a couple of seconds. The file will be named with the date range for easy filing.",position:'top'},
+    ],
+    showProgress:true,showBullets:false,exitOnOverlayClick:false,
+    nextLabel:'Next →',prevLabel:'← Back',doneLabel:'✅ Got it!',skipLabel:'Skip',
+    tooltipClass:'akanbi-tour',
+  }).start();
+}
+</script>
+<style>
+.akanbi-tour .introjs-tooltip{max-width:340px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.akanbi-tour .introjs-tooltiptext{font-size:14px;line-height:1.6;color:#1e293b;}
+.akanbi-tour .introjs-button{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;border-radius:7px;padding:7px 16px;}
+.akanbi-tour .introjs-nextbutton{background:#1a3c5e;color:white;border-color:#1a3c5e;}
+.akanbi-tour .introjs-nextbutton:hover{background:#2a5480;}
+.akanbi-tour .introjs-prevbutton{color:#1a3c5e;}
+.akanbi-tour .introjs-skipbutton{color:#64748b;font-size:13px;}
+.akanbi-tour .introjs-progressbar{background:#1a3c5e;}
+.introjs-helperLayer{border-radius:10px;}
+</style>
+{% endblock %}

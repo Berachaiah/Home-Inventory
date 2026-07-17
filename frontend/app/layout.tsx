@@ -1,17 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import AppShell from "@/components/AppShell";
 
-const fraunces = Fraunces({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["500", "600"],
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-jakarta",
+  weight: ["500", "600", "700", "800"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -26,23 +22,24 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Home Inventory",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2F5D50",
+  themeColor: "#1A3C5E",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${plexMono.variable}`}>
+    <html lang="en" className={`${jakarta.variable} ${plexMono.variable}`}>
       <body className="font-body min-h-screen bg-bg text-ink antialiased">
         <ServiceWorkerRegister />
-        {children}
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

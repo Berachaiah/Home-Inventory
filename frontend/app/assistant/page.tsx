@@ -83,23 +83,25 @@ export default function AssistantPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-8">
-      <header className="mb-6 flex items-center justify-between">
+    <main className="mx-auto flex min-h-screen min-h-[100dvh] max-w-2xl flex-col px-4 pt-safe pb-4 md:py-8">
+      <header className="mb-4 flex items-center justify-between pt-6 md:pt-0">
         <div>
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink-soft">Household</p>
-          <h1 className="font-display text-2xl font-semibold text-ink">Store Assistant</h1>
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-ink-soft">Household</p>
+          <h1 className="font-display text-xl font-extrabold text-navy-dark md:text-2xl">Store Assistant</h1>
         </div>
-        <Link href="/" className="focus-ring text-sm text-ink-soft hover:text-ink">
+        <Link href="/" className="focus-ring hidden text-sm font-semibold text-ink-soft hover:text-navy md:block">
           ← Back to shelves
         </Link>
       </header>
 
-      <div className="flex-1 space-y-4 overflow-y-auto rounded border border-line bg-surface p-4">
+      <div className="flex-1 space-y-3 overflow-y-auto rounded-xl bg-white p-4 shadow-card">
         {messages.map((m, i) => (
           <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
             <div
-              className={`inline-block max-w-[85%] rounded px-4 py-2 text-sm ${
-                m.role === "user" ? "bg-accent text-white" : "bg-accent-soft text-ink"
+              className={`inline-block max-w-[85%] rounded-xl px-4 py-2.5 text-sm ${
+                m.role === "user"
+                  ? "rounded-br-sm bg-navy text-white"
+                  : "rounded-bl-sm border border-border bg-bg text-ink"
               }`}
             >
               {m.content}
@@ -109,13 +111,13 @@ export default function AssistantPage() {
               <div className="mt-2 flex justify-start gap-2">
                 <button
                   onClick={() => resolveAction(i, true)}
-                  className="focus-ring rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent/90"
+                  className="focus-ring rounded-lg bg-gold px-3 py-1.5 text-sm font-semibold text-navy-dark hover:bg-gold-light"
                 >
                   Confirm
                 </button>
                 <button
                   onClick={() => resolveAction(i, false)}
-                  className="focus-ring rounded border border-line px-3 py-1.5 text-sm text-ink-soft hover:text-ink"
+                  className="focus-ring rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-ink-soft hover:text-ink"
                 >
                   Cancel
                 </button>
@@ -129,11 +131,11 @@ export default function AssistantPage() {
         <div ref={bottomRef} />
       </div>
 
-      {error && <p className="mt-2 text-sm text-out">{error}</p>}
+      {error && <p className="mt-2 text-sm font-medium text-danger">{error}</p>}
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-3 flex gap-2 pb-safe">
         <input
-          className="focus-ring flex-1 rounded border border-line bg-surface px-3 py-2 text-ink"
+          className="focus-ring flex-1 rounded-xl border border-border bg-white px-3 py-2.5 text-ink shadow-card"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
@@ -143,7 +145,7 @@ export default function AssistantPage() {
         <button
           onClick={send}
           disabled={loading}
-          className="focus-ring rounded bg-accent px-4 py-2 font-medium text-white hover:bg-accent/90 disabled:opacity-60"
+          className="focus-ring rounded-xl bg-navy px-4 py-2.5 font-semibold text-white hover:bg-navy-light disabled:opacity-60"
         >
           {loading ? "…" : "Send"}
         </button>

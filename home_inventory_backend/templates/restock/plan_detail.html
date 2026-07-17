@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% block title %}{{ plan.name }}{% endblock %}
+{% block page_title %}{{ plan.name }}{% endblock %}
+{% block breadcrumb %}Restock Planner → {{ plan.name }}{% endblock %}
+{% block top_actions %}
+<a href="{{ url_for('plan_print', plan.id) }}" class="btn btn-outline" target="_blank" id="tour-print">🖨 Print List</a>
+{% if plan.status != 'done' %}
+<form method="post" action="{{ url_for('plan_update_status', plan.id) }}" style="display:inline;">{% if plan.status == 'draft' %}<button name="status" value="shopping" class="btn btn-accent" id="tour-status-btn">🛒 Mark as Shopping</button>
+  {% elif plan.status == 'shopping' %}<button name="status" value="done" class="btn btn-success" id="tour-status-btn">✅ Mark as Completed</button>{% endif %}
+</form>
+{% endif %}
+{% endblock %}
+{% block content %}
+
+<div class="alert alert-info" style="margin-bottom:20px;">
+  🛍️ <strong>Your restock plan.</strong> Add items below, set how many packs to buy and estimated prices, then print the list before going shopping. When you return, click <strong>✅ Restocked</strong> next to each item you bought — the inventory updates automatically.
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px;" id="tour-stats">
+  <div class="stat-card navy"><div class="stat-icon navy">📋</div><div class="stat-value">{{ items|length }}</div><div class="stat-label">Items in Plan</div></div>
+  <div class="stat-card {% if pending|length > 0 %}amber{% else %}green{% endif %}"><div class="stat-icon {% if pending|length > 0 %}amber{% else %}green{% endif %}">🛒</div><div class="stat-value">{{ pending|length }}</div><div class="stat-label">Still to Buy</div></div>
+  <div class="stat-card green"><div class="stat-icon green">✅</div><div class="stat-value">{{ restocked|length }}</div><div class="stat-label">Restocked</div></div>
+  {% if user.is_admin() %}
+  <div class="stat-card amber"><div class="stat-icon amber">💰</div><div class="stat-value" style="font-size:20px;">₦{{ total_estimated|floatformat(0) }}</div><div class="stat-label">Estimated Budget</div></div>
+  {% if restocked|length > 0 %}
+  <div class="stat-card green"><div class="stat-icon green">💵</div><div class="stat-value" style="font-size:20px;">₦{{ total_restocked|floatformat(0) }}</div><div class="stat-label">Actual Spent</div></div>
+  {% endif %}
+  {% endif %}
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start;">
+  <div>
+    {% if pending %}
+    <div class="card mb-3" id="tour-pending">
+      <div class="card-header"><span class="card-title">🛒 Still to Buy ({{ pending|length }})</span></div>
+      <div class="table-wrapper"><table>
+        <thead><tr><th>Item</th><th>Category</th><th>Packs</th><th>Units/Pack</th>{% if user.is_admin() %}<th>Est. Price/Pack</th><th>Est. Total</th>{% endif %}<th>Notes</th><th>Actions</th></tr></thead>
+        <tbody>{% for pi in pending %}
+        <tr>
+          <td>
+            <strong>{{ pi.item.name }}</strong>{% if pi.item.brand %}<div class="text-muted text-sm">{{ pi.item.brand }}</div>{% endif %}
+            <div class="text-muted text-sm">Stock now: {{ pi.item.total_quantity() }} {{ pi.item.unit_type }} — <span class="badge badge-{{ pi.item.stock_status() }}" style="font-size:10px;">{{ pi.item.stock_status()|title }}</span></div>
+          </td>
+          <td class="text-muted">{{ pi.item.category|djdefault('—') }}</td>
+          <td><strong>{{ pi.packs_to_buy }}</strong></td>
+          <td>{{ pi.units_per_pack }}</td>
+          {% if user.is_admin() %}
+          <td>{% if pi.estimated_price_per_pack > 0 %}₦{{ pi.estimated_price_per_pack|floatformat(0) }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{% if pi.estimated_cost() > 0 %}<strong>₦{{ pi.estimated_cost()|floatformat(0) }}</strong>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          {% endif %}
+          <td class="text-muted text-sm">{{ pi.notes|djdefault('—') }}</td>
+          <td><div class="flex-gap">
+            <a href="{{ url_for('mark_restocked', pi.id) }}" class="btn btn-success btn-sm" id="{% if loop.first %}tour-restocked-btn{% endif %}">✅ Restocked</a>
+            <a href="{{ url_for('plan_item_edit', pi.id) }}" class="btn btn-outline btn-sm">Edit</a>
+            <form method="post" action="{{ url_for('plan_item_delete', pi.id) }}" style="display:inline;" onsubmit="return confirm('Remove this item from the plan?')"><button type="submit" class="btn btn-danger btn-sm">✕</button></form>
+          </div></td>
+        </tr>{% endfor %}</tbody>
+        {% if user.is_admin() and total_estimated > 0 %}
+        <tfoot><tr style="background:#f8fafc;">
+          <td colspan="5" style="padding:12px 16px;font-weight:700;text-align:right;">Estimated Total:</td>
+          <td style="padding:12px 16px;font-weight:800;font-size:15px;color:var(--navy-dark);">₦{{ total_estimated|floatformat(0) }}</td>
+          <td colspan="2"></td>
+        </tr></tfoot>
+        {% endif %}
+      </table></div>
+    </div>
+    {% endif %}
+
+    {% if restocked %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">✅ Already Restocked ({{ restocked|length }})</span></div>
+      <div class="table-wrapper"><table>
+        <thead><tr><th>Item</th><th>Packs Bought</th><th>Purchase Date</th><th>Expiry Date</th>{% if user.is_admin() %}<th>Actual Cost</th>{% endif %}<th>Restocked At</th></tr></thead>
+        <tbody>{% for pi in restocked %}
+        <tr style="opacity:0.75;">
+          <td><strong>{{ pi.item.name }}</strong></td>
+          <td>{{ pi.packs_to_buy }}</td>
+          <td class="text-muted">{{ pi.actual_purchase_date|djdefault('—') }}</td>
+          <td class="text-muted">{{ pi.actual_expiry_date|djdefault('No expiry') }}</td>
+          {% if user.is_admin() %}<td>{% if pi.actual_price_per_pack > 0 %}₦{{ pi.actual_cost()|floatformat(0) }}{% else %}—{% endif %}</td>{% endif %}
+          <td class="text-muted text-sm">{{ pi.restocked_at|djdate('d M Y, g:i A') }}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+    </div>
+    {% endif %}
+
+    {% if not items %}
+    <div class="card"><div class="empty-state" style="padding:50px;">
+      <div class="empty-icon">📋</div>
+      <p style="font-weight:600;margin-bottom:8px;">No items in this plan yet</p>
+      <p class="text-muted">Add items using the form on the right →</p>
+    </div></div>
+    {% endif %}
+  </div>
+
+  <div>
+    {% if plan.status != 'done' %}
+    <div class="card mb-3" id="tour-add-form">
+      <div class="card-header"><span class="card-title">➕ Add Item to Plan</span></div>
+      <div class="card-body">
+        <form method="post"><input type="hidden" name="add_item" value="1">
+          <div class="form-group">
+            <label class="form-label">Item</label>
+            <select name="item_id" class="form-control" required>
+              <option value="">— Select item —</option>
+              {% for it in all_items %}<option value="{{ it.id }}">{{ it }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Packs to Buy</label><input type="number" step="0.01" min="0.01" name="packs_to_buy" class="form-control" value="1" required></div>
+          <div class="form-group"><label class="form-label">Units per Pack</label><input type="number" step="0.01" min="0.01" name="units_per_pack" class="form-control" value="1" required></div>
+          <div class="form-group"><label class="form-label">Estimated Price per Pack (₦)</label><input type="number" step="0.01" min="0" name="estimated_price_per_pack" class="form-control" value="0"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Add to Plan</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card" id="tour-plan-info">
+      <div class="card-header"><span class="card-title">Plan Info</span></div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div><span class="text-muted text-sm">Status</span><br>
+            <span class="badge {% if plan.status == 'done' %}badge-ok{% elif plan.status == 'shopping' %}badge-moderate{% else %}badge-none{% endif %}">
+              {% if plan.status == 'draft' %}📝 Draft{% elif plan.status == 'shopping' %}🛒 Shopping{% else %}✅ Completed{% endif %}
+            </span>
+          </div>
+          <div><span class="text-muted text-sm">Created by</span><br><strong>{{ plan.created_by.full_name() if plan.created_by else 'Unknown' }}</strong></div>
+          <div><span class="text-muted text-sm">Created</span><br><strong>{{ plan.created_at|djdate('d M Y, g:i A') }}</strong></div>
+          {% if plan.notes %}<div><span class="text-muted text-sm">Notes</span><br>{{ plan.notes }}</div>{% endif %}
+        </div>
+        <div class="divider"></div>
+        <div class="flex-gap" style="flex-wrap:wrap;">
+          <a href="{{ url_for('plan_print', plan.id) }}" class="btn btn-outline btn-sm" target="_blank">🖨 Print</a>
+          <a href="{{ url_for('plan_delete', plan.id) }}" class="btn btn-danger btn-sm">Delete Plan</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block tour_script %}
+<script>
+function startTour(){
+  var steps = [
+    {intro:"<strong>🛍️ Restock Plan Detail</strong><br><br>This page is your shopping management hub for this plan. You can see everything you need to buy, track what's already been bought, and get a running budget total."},
+    {element:document.getElementById('tour-stats'),intro:"<strong>Plan Summary</strong><br><br>At a glance: how many items are in the plan, how many are still to buy, how many have been restocked, and the total estimated budget. The budget is based on the last known purchase price for each item.",position:'bottom'},
+  ];
+  {% if pending %}
+  steps.push({element:document.getElementById('tour-pending'),intro:"<strong>Items Still to Buy</strong><br><br>These are the items you haven't bought yet. Each row shows the current stock level so you can see why it was flagged for restocking. The estimated total at the bottom gives you your budget target.",position:'top'});
+  {% if user.is_manager() %}
+  steps.push({element:document.getElementById('tour-restocked-btn'),intro:"<strong>✅ Restocked Button</strong><br><br>When you return from shopping and have bought an item, click this button next to it. You'll enter the actual purchase date, expiry date, and price. The system will automatically create a new stock batch in the inventory — you don't have to do it manually.",position:'left'});
+  {% endif %}
+  {% endif %}
+  {% if user.is_manager() and plan.status != 'done' %}
+  steps.push({element:document.getElementById('tour-add-form'),intro:"<strong>Adding Items</strong><br><br>If you want to add more items to this plan (beyond what was auto-populated), use this form. Select the item, set how many packs to buy, and optionally set the estimated price per pack.",position:'left'});
+  {% endif %}
+  steps.push(
+    {element:document.getElementById('tour-plan-info'),intro:"<strong>Plan Status</strong><br><br>Change the status as you progress:<br><br>• <strong>📝 Draft</strong> — plan is being built<br>• <strong>🛒 Shopping</strong> — you've left for the market<br>• <strong>✅ Completed</strong> — all done<br><br>Other household members can see the active status on the dashboard.",position:'left'},
+    {element:document.getElementById('tour-print'),intro:"<strong>🖨 Print the List</strong><br><br>This generates a clean, printable shopping list with all the items, quantities, estimated prices, and a grand total. You can view it on your phone at the market or print it out.",position:'bottom'}
+  );
+  introJs().setOptions({
+    steps:steps,showProgress:true,showBullets:false,exitOnOverlayClick:false,
+    nextLabel:'Next →',prevLabel:'← Back',doneLabel:'✅ Got it!',skipLabel:'Skip',
+    tooltipClass:'akanbi-tour',
+  }).start();
+}
+</script>
+<style>
+.akanbi-tour .introjs-tooltip{max-width:340px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.akanbi-tour .introjs-tooltiptext{font-size:14px;line-height:1.6;color:#1e293b;}
+.akanbi-tour .introjs-button{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;border-radius:7px;padding:7px 16px;}
+.akanbi-tour .introjs-nextbutton{background:#1a3c5e;color:white;border-color:#1a3c5e;}
+.akanbi-tour .introjs-nextbutton:hover{background:#2a5480;}
+.akanbi-tour .introjs-prevbutton{color:#1a3c5e;}
+.akanbi-tour .introjs-skipbutton{color:#64748b;font-size:13px;}
+.akanbi-tour .introjs-progressbar{background:#1a3c5e;}
+.introjs-helperLayer{border-radius:10px;}
+</style>
+{% endblock %}

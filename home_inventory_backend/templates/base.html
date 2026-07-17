@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="icon" href="/static/favicon.ico" sizes="any">
+<link rel="icon" href="/static/icons/favicon-32x32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a3c5e">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Home Inventory{% endblock %}</title>
+<link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
+<style>
+/* ── AI CHAT WIDGET ─────────────────────────────── */
+#ai-widget{position:fixed;bottom:28px;right:28px;z-index:9999;font-family:'Plus Jakarta Sans',sans-serif;}
+
+/* floating button */
+#ai-btn{
+  width:68px;height:68px;border-radius:50%;border:none;cursor:pointer;
+  background:none;padding:0;position:relative;
+  filter:drop-shadow(0 8px 24px rgba(26,60,94,0.45));
+  transition:transform 0.2s;
+}
+#ai-btn:hover{transform:scale(1.08);}
+#ai-btn svg{width:68px;height:68px;display:block;}
+
+/* notification badge */
+#ai-badge{
+  position:absolute;top:0;right:0;
+  width:22px;height:22px;border-radius:50%;
+  background:#e8a020;color:#0f2540;
+  font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid white;
+  animation:badge-pulse 2s infinite;
+}
+@keyframes badge-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+
+/* chat panel */
+#ai-panel{
+  position:absolute;bottom:80px;right:0;
+  width:360px;
+  background:#fff;border-radius:16px;
+  box-shadow:0 16px 48px rgba(0,0,0,0.18),0 4px 12px rgba(0,0,0,0.08);
+  display:none;flex-direction:column;overflow:hidden;
+  border:1px solid rgba(26,60,94,0.12);
+  animation:panel-in 0.2s ease;
+}
+@keyframes panel-in{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+#ai-panel-header{
+  background:linear-gradient(135deg,#0f2540,#1a3c5e);
+  padding:14px 18px;display:flex;align-items:center;gap:10px;
+}
+#ai-panel-header .header-avatar{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(255,255,255,0.15);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#ai-panel-header .header-text .title{color:#fff;font-weight:700;font-size:14px;}
+#ai-panel-header .header-text .sub{color:rgba(255,255,255,0.5);font-size:11px;}
+#ai-panel-header .status-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#4ade80;margin-left:auto;flex-shrink:0;
+  box-shadow:0 0 6px #4ade80;
+}
+#ai-close{
+  background:rgba(255,255,255,0.12);border:none;color:white;
+  width:28px;height:28px;border-radius:50%;cursor:pointer;
+  font-size:14px;display:flex;align-items:center;justify-content:center;
+  margin-left:6px;flex-shrink:0;transition:background 0.15s;
+}
+#ai-close:hover{background:rgba(255,255,255,0.25);}
+
+#ai-messages{
+  flex:1;padding:16px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:10px;
+  max-height:320px;min-height:160px;
+  background:#f8fafc;
+}
+.ai-msg{max-width:85%;font-size:13.5px;line-height:1.55;}
+.ai-msg.bot{align-self:flex-start;}
+.ai-msg.user{align-self:flex-end;}
+.ai-msg .bubble{
+  padding:10px 13px;border-radius:12px;
+}
+.ai-msg.bot .bubble{
+  background:#fff;border:1px solid #e2e8f0;
+  border-bottom-left-radius:4px;color:#1e293b;
+}
+.ai-msg.user .bubble{
+  background:#1a3c5e;color:#fff;
+  border-bottom-right-radius:4px;
+}
+.ai-msg.bot .bubble.typing{color:#94a3b8;font-style:italic;}
+
+#ai-suggestions{
+  padding:10px 14px 0;display:flex;gap:6px;flex-wrap:wrap;background:#f8fafc;
+}
+.ai-suggestion{
+  background:#fff;border:1px solid #e2e8f0;border-radius:20px;
+  padding:5px 11px;font-size:11.5px;color:#1a3c5e;font-weight:600;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;
+}
+.ai-suggestion:hover{background:#1a3c5e;color:#fff;border-color:#1a3c5e;}
+
+#ai-input-row{
+  padding:12px 14px 14px;background:#fff;
+  border-top:1px solid #e2e8f0;
+  display:flex;gap:8px;align-items:center;
+}
+#ai-input{
+  flex:1;border:1.5px solid #e2e8f0;border-radius:22px;
+  padding:9px 14px;font-size:13.5px;font-family:inherit;
+  outline:none;resize:none;line-height:1.4;
+  transition:border-color 0.15s;
+}
+#ai-input:focus{border-color:#1a3c5e;}
+#ai-send{
+  width:36px;height:36px;border-radius:50%;border:none;
+  background:#1a3c5e;color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background 0.15s;font-size:15px;
+}
+#ai-send:hover{background:#2a5480;}
+#ai-send:disabled{background:#cbd5e1;cursor:not-allowed;}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <span class="brand-name">Home Inventory</span>
+    <span class="brand-sub">Store Management</span>
+  </div>
+  {% if user %}
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ user.first_name|first|upper }}{{ user.last_name|first|upper }}</div>
+    <div class="user-info">
+      <div class="user-name">{{ user.full_name() }}</div>
+      <div class="user-role">{{ user.role.value }}</div>
+    </div>
+  </div>
+  {% endif %}
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a href="{{ url_for('dashboard') }}" id="nav-dashboard" class="{% if active_nav == 'dashboard' %}active{% endif %}"><span class="nav-icon">🏠</span> Dashboard</a>
+    <div class="nav-section-label">Inventory</div>
+    <a href="{{ url_for('item_list') }}" id="nav-items" class="{% if 'item' in active_nav %}active{% endif %}"><span class="nav-icon">📦</span> All Items</a>
+    {% if user and user.is_manager() %}
+    <a href="{{ url_for('item_create') }}" id="nav-add-item" class="{% if active_nav == 'item_create' %}active{% endif %}"><span class="nav-icon">➕</span> Add Item</a>
+    {% endif %}
+    <div class="nav-section-label">Stock Movement</div>
+    <a href="{{ url_for('withdraw_item') }}" id="nav-take" class="{% if active_nav == 'withdraw_item' %}active{% endif %}"><span class="nav-icon">🛒</span> Take Item</a>
+    <a href="{{ url_for('withdrawal_log') }}" id="nav-log" class="{% if active_nav == 'withdrawal_log' %}active{% endif %}"><span class="nav-icon">📋</span> Withdrawal Log</a>
+    {% if user and user.is_manager() %}
+    <div class="nav-section-label">Planning</div>
+    <a href="{{ url_for('plan_list') }}" id="nav-restock" class="{% if 'plan' in active_nav %}active{% endif %}"><span class="nav-icon">🛍️</span> Restock Planner</a>
+    <div class="nav-section-label">Reports</div>
+    <a href="{{ url_for('report_home') }}" id="nav-reports" class="{% if active_nav == 'report_home' %}active{% endif %}"><span class="nav-icon">📊</span> Generate Report</a>
+    <div class="nav-section-label">Settings</div>
+    <a href="{{ url_for('category_list') }}" id="nav-categories" class="{% if 'category' in active_nav %}active{% endif %}"><span class="nav-icon">🏷️</span> Categories</a>
+    <a href="{{ url_for('room_list') }}" id="nav-rooms" class="{% if 'room' in active_nav %}active{% endif %}"><span class="nav-icon">🚪</span> Rooms</a>
+    {% endif %}
+    {% if user and user.is_admin() %}
+    <a href="{{ url_for('user_list') }}" id="nav-users" class="{% if 'user' in active_nav %}active{% endif %}"><span class="nav-icon">👥</span> Users</a>
+    {% endif %}
+  </nav>
+  <div class="sidebar-footer">
+    {% if user %}<a href="{{ url_for('logout') }}"><span>🚪</span> Sign Out</a>{% endif %}
+  </div>
+</aside>
+
+<div class="main-content">
+  <div class="top-bar"><button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  </svg>
+</button>
+    <div>
+      <div class="page-title">{% block page_title %}Dashboard{% endblock %}</div>
+      <div class="page-breadcrumb">{% block breadcrumb %}{% endblock %}</div>
+    </div>
+    <div class="page-actions">
+      {% block top_actions %}{% endblock %}
+      {% if user %}
+      <button onclick="startTour()" title="Take a tour of this page" style="background:rgba(26,60,94,0.08);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;color:var(--navy);display:flex;align-items:center;gap:6px;">
+        ❓ Help Tour
+      </button>
+      {% endif %}
+    </div>
+  </div>
+  <div class="content-area">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|djdefault('info') }}">
+      <span>{% if message.tags == 'success' %}✅{% elif message.tags == 'error' %}❌{% else %}ℹ️{% endif %}</span>
+      <span>{{ message }}</span>
+    </div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+</div>
+
+{% if user and not hide_assistant %}
+<!-- ── INVENTORY AI WIDGET ──────────────────────────────────── -->
+<div id="ai-widget">
+
+  <!-- Chat Panel -->
+  <div id="ai-panel">
+    <div id="ai-panel-header">
+      <div class="header-avatar">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="8" r="4" fill="rgba(255,255,255,0.9)"/>
+          <rect x="6" y="13" width="12" height="8" rx="3" fill="rgba(255,255,255,0.9)"/>
+          <circle cx="9" cy="7.5" r="1.2" fill="#1a3c5e"/>
+          <circle cx="15" cy="7.5" r="1.2" fill="#1a3c5e"/>
+          <path d="M9 10.5 Q12 12 15 10.5" stroke="#1a3c5e" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+          <rect x="9" y="15" width="2.5" height="3.5" rx="1" fill="#1a3c5e" opacity="0.6"/>
+          <rect x="12.5" y="15" width="2.5" height="3.5" rx="1" fill="#1a3c5e" opacity="0.6"/>
+          <line x1="12" y1="4" x2="12" y2="2.5" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="12" cy="2" r="1" fill="#e8a020"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <div class="title">Inventory Assistant</div>
+        <div class="sub">Ask me anything about your store</div>
+      </div>
+      <div class="status-dot"></div>
+      <button id="ai-close" onclick="toggleAI()">✕</button>
+    </div>
+
+    <div id="ai-messages">
+      <div class="ai-msg bot">
+        <div class="bubble">
+          👋 Hi {{ user.first_name or user.username }}! I know everything about your inventory right now. Ask me what's running low, what's expiring, who took something — anything!
+        </div>
+      </div>
+    </div>
+
+    <div id="ai-suggestions">
+      <button class="ai-suggestion" onclick="sendSuggestion(this)">What's low?</button>
+      <button class="ai-suggestion" onclick="sendSuggestion(this)">What's expiring?</button>
+      <button class="ai-suggestion" onclick="sendSuggestion(this)">Restock summary</button>
+      <button class="ai-suggestion" onclick="sendSuggestion(this)">Recent withdrawals</button>
+    </div>
+
+    <div id="ai-input-row">
+      <input type="text" id="ai-input" placeholder="Ask about your inventory…" maxlength="300"
+             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}">
+      <button id="ai-send" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+  <!-- Floating 3D Robot Button -->
+  <button id="ai-btn" onclick="toggleAI()" title="Inventory Assistant">
+    <svg viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="bg-grad" cx="40%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#2a5480"/>
+          <stop offset="60%" stop-color="#1a3c5e"/>
+          <stop offset="100%" stop-color="#0a1f35"/>
+        </radialGradient>
+        <radialGradient id="face-grad" cx="45%" cy="35%" r="60%">
+          <stop offset="0%" stop-color="#e8f4ff"/>
+          <stop offset="100%" stop-color="#b8d4ee"/>
+        </radialGradient>
+        <radialGradient id="eye-grad" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#4db8ff"/>
+          <stop offset="100%" stop-color="#0066cc"/>
+        </radialGradient>
+        <radialGradient id="gold-grad" cx="30%" cy="30%" r="70%">
+          <stop offset="0%" stop-color="#ffe066"/>
+          <stop offset="100%" stop-color="#e8a020"/>
+        </radialGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="1.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="inner-shadow">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+          <feOffset dx="1" dy="2"/>
+          <feComposite in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1"/>
+          <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.3 0"/>
+          <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Main circle background -->
+      <circle cx="34" cy="34" r="33" fill="url(#bg-grad)"/>
+      <!-- Highlight rim -->
+      <circle cx="34" cy="34" r="33" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <!-- Top highlight -->
+      <ellipse cx="30" cy="20" rx="14" ry="8" fill="rgba(255,255,255,0.08)"/>
+
+      <!-- Robot head -->
+      <rect x="18" y="16" width="32" height="24" rx="6" fill="url(#face-grad)" filter="url(#inner-shadow)"/>
+      <!-- Head highlight -->
+      <rect x="20" y="17" width="28" height="8" rx="4" fill="rgba(255,255,255,0.4)"/>
+      <!-- Head side shading -->
+      <rect x="18" y="22" width="4" height="16" rx="2" fill="rgba(0,0,0,0.08)"/>
+      <rect x="46" y="22" width="4" height="16" rx="2" fill="rgba(0,0,0,0.08)"/>
+
+      <!-- Antenna -->
+      <line x1="34" y1="16" x2="34" y2="10" stroke="#8ab4d4" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="34" cy="9" r="3" fill="url(#gold-grad)" filter="url(#glow)"/>
+      <circle cx="34" cy="9" r="1.5" fill="#fff" opacity="0.6"/>
+
+      <!-- Eyes -->
+      <circle cx="27" cy="27" r="5" fill="url(#eye-grad)"/>
+      <circle cx="41" cy="27" r="5" fill="url(#eye-grad)"/>
+      <!-- Eye shine -->
+      <circle cx="29" cy="25" r="1.8" fill="rgba(255,255,255,0.7)"/>
+      <circle cx="43" cy="25" r="1.8" fill="rgba(255,255,255,0.7)"/>
+      <!-- Pupil -->
+      <circle cx="27" cy="27" r="2.5" fill="#003a75"/>
+      <circle cx="41" cy="27" r="2.5" fill="#003a75"/>
+      <!-- Eye glow -->
+      <circle cx="27" cy="27" r="5" fill="none" stroke="rgba(77,184,255,0.5)" stroke-width="1" filter="url(#glow)"/>
+      <circle cx="41" cy="27" r="5" fill="none" stroke="rgba(77,184,255,0.5)" stroke-width="1" filter="url(#glow)"/>
+
+      <!-- Mouth / speaker grille -->
+      <rect x="26" y="34" width="16" height="4" rx="2" fill="rgba(26,60,94,0.2)"/>
+      <line x1="28" y1="36" x2="40" y2="36" stroke="#1a3c5e" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+
+      <!-- Body -->
+      <rect x="22" y="42" width="24" height="14" rx="5" fill="#1a3c5e"/>
+      <!-- Body highlight -->
+      <rect x="24" y="43" width="20" height="5" rx="3" fill="rgba(255,255,255,0.12)"/>
+      <!-- Chest panel -->
+      <rect x="27" y="47" width="6" height="5" rx="1.5" fill="url(#gold-grad)" opacity="0.9"/>
+      <rect x="35" y="47" width="6" height="5" rx="1.5" fill="rgba(77,184,255,0.6)"/>
+
+      <!-- Arms -->
+      <rect x="13" y="43" width="7" height="10" rx="3.5" fill="#1a3c5e"/>
+      <rect x="13" y="43" width="7" height="4" rx="3" fill="rgba(255,255,255,0.1)"/>
+      <rect x="48" y="43" width="7" height="10" rx="3.5" fill="#1a3c5e"/>
+      <rect x="48" y="43" width="7" height="4" rx="3" fill="rgba(255,255,255,0.1)"/>
+
+      <!-- Legs -->
+      <rect x="25" y="57" width="7" height="6" rx="3" fill="#0f2540"/>
+      <rect x="36" y="57" width="7" height="6" rx="3" fill="#0f2540"/>
+
+      <!-- Ear bolts -->
+      <circle cx="18" cy="28" r="3" fill="#8ab4d4"/>
+      <circle cx="18" cy="28" r="1.5" fill="#b8d4ee"/>
+      <circle cx="50" cy="28" r="3" fill="#8ab4d4"/>
+      <circle cx="50" cy="28" r="1.5" fill="#b8d4ee"/>
+
+      <!-- Bottom shadow -->
+      <ellipse cx="34" cy="64" rx="18" ry="3" fill="rgba(0,0,0,0.2)"/>
+    </svg>
+    <div id="ai-badge">1</div>
+  </button>
+</div>
+
+<script>
+var aiOpen = false;
+var chatHistory = [];
+var badgeDismissed = false;
+const CHAT_URL = '/api/assistant/chat';
+const CSRF = ''; // no CSRF cookie scheme yet -- see README
+
+function toggleAI() {
+  aiOpen = !aiOpen;
+  document.getElementById('ai-panel').style.display = aiOpen ? 'flex' : 'none';
+  if (aiOpen) {
+    document.getElementById('ai-badge').style.display = 'none';
+    badgeDismissed = true;
+    document.getElementById('ai-input').focus();
+    scrollMessages();
+  }
+}
+
+function scrollMessages() {
+  var el = document.getElementById('ai-messages');
+  el.scrollTop = el.scrollHeight;
+}
+
+function addMessage(text, role) {
+  var msgs = document.getElementById('ai-messages');
+  var div = document.createElement('div');
+  div.className = 'ai-msg ' + role;
+  div.innerHTML = '<div class="bubble">' + text.replace(/\n/g,'<br>') + '</div>';
+  msgs.appendChild(div);
+  scrollMessages();
+  return div;
+}
+
+function sendSuggestion(btn) {
+  var text = btn.textContent;
+  document.getElementById('ai-suggestions').style.display = 'none';
+  sendMessage(text);
+}
+
+async function sendMessage(override) {
+  var input = document.getElementById('ai-input');
+  var text = (override || input.value).trim();
+  if (!text) return;
+  input.value = '';
+  document.getElementById('ai-send').disabled = true;
+
+  addMessage(text, 'user');
+  chatHistory.push({role:'user', content:text});
+
+  // typing indicator
+  var typingDiv = addMessage('Checking your inventory…', 'bot');
+  typingDiv.querySelector('.bubble').classList.add('typing');
+
+  try {
+    var resp = await fetch(CHAT_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-CSRFToken':CSRF},
+      body: JSON.stringify({message:text, history:chatHistory.slice(-6)})
+    });
+    var data = await resp.json();
+    typingDiv.remove();
+
+    var reply = data.reply || data.error || 'Sorry, something went wrong. Try again.';
+    addMessage(reply, 'bot');
+    chatHistory.push({role:'assistant', content:reply});
+
+    // Keep history lean
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+  } catch(e) {
+    typingDiv.remove();
+    addMessage('Connection error. Please try again.', 'bot');
+  }
+  document.getElementById('ai-send').disabled = false;
+  document.getElementById('ai-input').focus();
+}
+
+// Pulse the badge after 3 seconds if panel not yet opened
+setTimeout(function(){
+  if (!badgeDismissed && !aiOpen) {
+    document.getElementById('ai-badge').style.display = 'flex';
+  }
+}, 3000);
+</script>
+{% endif %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
+<script>function startTour(){console.log('No tour on this page.');}</script>
+{% block extra_js %}{% endblock %}
+{% block tour_script %}{% endblock %}
+<script>
+(function(){
+  var btn = document.getElementById('mobile-menu-btn');
+  var sidebar = document.querySelector('.sidebar');
+  var backdrop = document.getElementById('sidebar-backdrop');
+  if(!btn || !sidebar || !backdrop) return;
+  function openMenu(){ sidebar.classList.add('open'); backdrop.classList.add('open'); }
+  function closeMenu(){ sidebar.classList.remove('open'); backdrop.classList.remove('open'); }
+  btn.addEventListener('click', openMenu);
+  backdrop.addEventListener('click', closeMenu);
+  sidebar.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', closeMenu); });
+})();
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/static/sw.js").catch(console.error);
+  });
+}
+</script>
+</body>
+</html>

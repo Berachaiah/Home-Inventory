@@ -45,6 +45,9 @@ class User(Base):
     def is_manager(self):
         return self.role in [RoleEnum.admin, RoleEnum.manager]
 
+    def __str__(self):
+        return self.full_name()
+
 
 class Category(Base):
     __tablename__ = "categories"
@@ -54,6 +57,9 @@ class Category(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     items = relationship("Item", back_populates="category")
 
+    def __str__(self):
+        return self.name
+
 
 class Room(Base):
     __tablename__ = "rooms"
@@ -62,6 +68,9 @@ class Room(Base):
     description = Column(Text, default="")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     items = relationship("Item", back_populates="room")
+
+    def __str__(self):
+        return self.name
 
 
 class Item(Base):
@@ -83,6 +92,9 @@ class Item(Base):
 
     def display_name(self):
         return f"{self.brand} — {self.name}" if self.brand else self.name
+
+    def __str__(self):
+        return self.display_name()
 
     def total_quantity(self):
         """Sum of remaining units across all active batches."""
@@ -137,6 +149,9 @@ class Batch(Base):
     added_by = relationship("User", back_populates="batches_added")
     withdrawals = relationship("WithdrawalLog", back_populates="batch", cascade="all, delete-orphan")
 
+    def __str__(self):
+        return f"Batch #{self.id}"
+
     def total_units(self):
         return float(self.pack_quantity) * float(self.units_per_pack)
 
@@ -189,6 +204,9 @@ class RestockPlan(Base):
 
     created_by = relationship("User", back_populates="restock_plans")
     items = relationship("RestockPlanItem", back_populates="plan", cascade="all, delete-orphan")
+
+    def __str__(self):
+        return self.name
 
     def total_estimated_cost(self):
         return sum(i.estimated_cost() for i in self.items)

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Withdrawal Log{% endblock %}
+{% block page_title %}Withdrawal Log{% endblock %}
+{% block breadcrumb %}Stock Movement → Log{% endblock %}
+{% block top_actions %}<a href="{{ url_for('withdraw_item') }}" class="btn btn-accent">🛒 Take Item</a>{% endblock %}
+{% block content %}
+<div class="alert alert-info" style="margin-bottom:20px;">
+  📋 <strong>Complete withdrawal history.</strong> Every item ever taken from the store appears here — who took it, when, how much, from which batch, and why. Use the filters below to search by person, date, or item name.
+</div>
+<form method="get" class="filter-bar" id="tour-filters">
+  <input type="text" name="q" value="{{ q }}" placeholder="🔍 Search item or purpose..." class="form-control search-input">
+  {% if user.is_manager() %}
+  <select name="user" class="form-control">
+    <option value="">All Members</option>
+    {% for u in users %}<option value="{{ u.id }}" {% if selected_user == u.id|stringformat('s') %}selected{% endif %}>{{ u.full_name() }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <input type="date" name="date_from" value="{{ date_from }}" class="form-control">
+  <input type="date" name="date_to" value="{{ date_to }}" class="form-control">
+  <button type="submit" class="btn btn-primary">Filter</button>
+  <a href="{{ url_for('withdrawal_log') }}" class="btn btn-outline">Clear</a>
+</form>
+<div class="card" id="tour-table">
+  <div class="card-header">
+    <span class="card-title">{{ total_count }} Record{{ total_count|pluralize }} Found</span>
+    {% if user.is_manager() %}<a href="{{ url_for('report_home') }}" class="btn btn-outline btn-sm">📊 Export Report</a>{% endif %}
+  </div>
+  <div class="table-wrapper"><table>
+    <thead><tr><th>Date & Time</th><th>Item</th><th>Batch #</th><th>Qty Taken</th><th>Remaining After</th><th>Taken By</th><th>Role</th><th>Purpose</th><th>Notes</th></tr></thead>
+    <tbody>{% for log in logs %}
+    <tr>
+      <td class="text-muted text-sm">{{ log.withdrawn_at|djdate('d M Y') }}<br>{{ log.withdrawn_at|djdate('g:i A') }}</td>
+      <td><a href="{{ url_for('item_detail', log.batch.item.id) }}" style="color:var(--navy);font-weight:600;text-decoration:none;">{{ log.batch.item.name }}</a>{% if log.batch.item.brand %}<div class="text-muted text-sm">{{ log.batch.item.brand }}</div>{% endif %}</td>
+      <td class="text-muted">#{{ log.batch.id }}</td>
+      <td><strong>{{ log.quantity_taken }}</strong> <span class="text-muted text-sm">{{ log.batch.item.unit_type }}</span></td>
+      <td>{{ log.quantity_remaining_after }}</td>
+      <td><strong>{{ log.user.full_name() if log.user else 'Unknown' }}</strong></td>
+      <td>{% if log.user %}<span class="badge badge-{{ log.user.role.value }}">{{ log.user.role.value }}</span>{% else %}—{% endif %}</td>
+      <td class="text-muted">{{ log.purpose|djdefault('—') }}</td>
+      <td class="text-muted">{{ log.notes|djdefault('—') }}</td>
+    </tr>
+    {% else %}<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📋</div><p>No withdrawal records found.</p></div></td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}
+{% block tour_script %}
+<script>
+function startTour(){
+  introJs().setOptions({
+    steps:[
+      {intro:"<strong>📋 Withdrawal Log</strong><br><br>This is the complete audit trail of everything ever taken from the store. Every withdrawal — whether it was 1 sachet or a full carton — is permanently recorded here with the person's name and timestamp."},
+      {element:document.getElementById('tour-filters'),intro:"<strong>Filtering Records</strong><br><br>Use these filters to narrow down what you're looking for:<br><br>• <strong>Search box</strong> — type an item name or purpose<br>• <strong>Member filter</strong> — see withdrawals by a specific person<br>• <strong>Date range</strong> — filter by a specific period, e.g. last week or last month",position:'bottom'},
+      {element:document.getElementById('tour-table'),intro:"<strong>What each column means</strong><br><br>• <strong>Batch #</strong> — which specific purchase batch the item came from<br>• <strong>Qty Taken</strong> — how many units were taken<br>• <strong>Remaining After</strong> — how many were left in that batch after the withdrawal<br>• <strong>Purpose</strong> — what it was taken for (e.g. Kitchen use, Guest room)",position:'top'},
+      {intro:"<strong>💡 Tips</strong><br><br>• Click any item name to go to its full detail page<br>• Use the date filters to build a monthly usage summary<br>• If you need a printable or Excel version, use the <strong>Export Report</strong> button to generate a full withdrawal history report"},
+    ],
+    showProgress:true,showBullets:false,exitOnOverlayClick:false,
+    nextLabel:'Next →',prevLabel:'← Back',doneLabel:'✅ Got it!',skipLabel:'Skip',
+    tooltipClass:'akanbi-tour',
+  }).start();
+}
+</script>
+<style>
+.akanbi-tour .introjs-tooltip{max-width:340px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.akanbi-tour .introjs-tooltiptext{font-size:14px;line-height:1.6;color:#1e293b;}
+.akanbi-tour .introjs-button{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;border-radius:7px;padding:7px 16px;}
+.akanbi-tour .introjs-nextbutton{background:#1a3c5e;color:white;border-color:#1a3c5e;}
+.akanbi-tour .introjs-nextbutton:hover{background:#2a5480;}
+.akanbi-tour .introjs-prevbutton{color:#1a3c5e;}
+.akanbi-tour .introjs-skipbutton{color:#64748b;font-size:13px;}
+.akanbi-tour .introjs-progressbar{background:#1a3c5e;}
+.introjs-helperLayer{border-radius:10px;}
+</style>
+{% endblock %}

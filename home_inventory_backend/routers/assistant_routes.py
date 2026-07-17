@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -24,7 +24,9 @@ You can look up stock levels, low-stock items, and expiring items directly.
 For anything that changes data (withdrawing stock, adding a new batch, creating a restock plan),
 you must NOT perform it yourself — call the matching propose_* tool instead, which will show the
 user a confirmation prompt. Never claim an action was completed unless a tool result says so.
-Be concise. Use the user's actual item names and numbers from tool results, don't guess at figures."""
+Be concise. Use the user's actual item names and numbers from tool results, don't guess at figures.
+When asked for a report for a specific month, call get_monthly_report and share the report_url it returns
+as a clickable link in your reply."""
 
 # ---- Read-only tools (executed immediately) ----
 
@@ -54,6 +56,20 @@ TOOLS = [
                 "type": "object",
                 "properties": {"item_name": {"type": "string"}},
                 "required": ["item_name"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_monthly_report",
+            "description": "Generate a downloadable inventory report link for a given month (or the current month if unspecified).",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "month": {"type": "string", "description": "e.g. 'June' or '2026-06'. Defaults to current month."},
+                    "format": {"type": "string", "enum": ["pdf", "excel"], "description": "Defaults to pdf."},
+                },
             },
         },
     },
@@ -108,6 +124,23 @@ TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_mark_restocked",
+            "description": "Propose marking an item on an open restock plan as bought, adding it to stock as a new batch. Requires user confirmation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "item_name": {"type": "string", "description": "Name of the item on an open (not yet restocked) restock plan."},
+                    "actual_price_per_pack": {"type": "number"},
+                    "actual_purchase_date": {"type": "string", "description": "YYYY-MM-DD, optional, defaults to today"},
+                    "actual_expiry_date": {"type": "string", "description": "YYYY-MM-DD, optional"},
+                },
+                "required": ["item_name", "actual_price_per_pack"],
+            },
+        },
+    },
 ]
 
 
@@ -152,6 +185,27 @@ async def _run_readonly_tool(db: AsyncSession, name: str, args: dict) -> dict:
             "expiry_status": item.expiry_status(),
         }
 
+    if name == "get_monthly_report":
+        import calendar
+        month_str = args.get("month")
+        fmt = args.get("format", "pdf")
+        today = date.today()
+        if month_str:
+            try:
+                if "-" in month_str:
+                    y, m = map(int, month_str.split("-")[:2])
+                else:
+                    m = [mn.lower() for mn in calendar.month_name].index(month_str.strip().lower())
+                    y = today.year
+            except (ValueError, IndexError):
+                return {"error": f"Could not parse month '{month_str}', try 'YYYY-MM' or a full month name"}
+        else:
+            y, m = today.year, today.month
+        d_from = date(y, m, 1)
+        d_to = date(y, m, calendar.monthrange(y, m)[1])
+        url = f"/api/reports/generate?format={fmt}&period=custom&date_from={d_from}&date_to={d_to}"
+        return {"report_url": url, "period": f"{d_from} to {d_to}", "format": fmt}
+
     return {"error": f"Unknown tool {name}"}
 
 
@@ -183,6 +237,13 @@ def _propose_tool_to_pending_action(name: str, args: dict) -> PendingAction:
             desc += f" with {args.get('packs_to_buy', 1)} pack(s) of \"{args['item_name']}\""
         desc += ". Confirm?"
         return PendingAction(action_type="create_restock_plan", description=desc, params=args)
+
+    if name == "propose_mark_restocked":
+        desc = f"Mark \"{args['item_name']}\" as restocked at ₦{args['actual_price_per_pack']}/pack"
+        if args.get("actual_expiry_date"):
+            desc += f", expiring {args['actual_expiry_date']}"
+        desc += ". This will add it to stock. Confirm?"
+        return PendingAction(action_type="mark_restocked", description=desc, params=args)
 
     raise ValueError(f"Unknown proposal tool {name}")
 
@@ -218,7 +279,15 @@ async def chat(payload: ChatRequest, db: AsyncSession = Depends(get_db), _=Depen
             return ChatResponse(reply=pending.description, pending_action=pending)
 
         # Otherwise execute read-only tools and feed results back for a final answer.
-        messages.append(choice.model_dump())
+        messages.append({
+            "role": "assistant",
+            "content": choice.content,
+            "tool_calls": [
+                {"id": tc.id, "type": "function",
+                 "function": {"name": tc.function.name, "arguments": tc.function.arguments}}
+                for tc in choice.tool_calls
+            ] if choice.tool_calls else None,
+        })
         for tc in choice.tool_calls:
             args = json.loads(tc.function.arguments or "{}")
             result = await _run_readonly_tool(db, tc.function.name, args)
@@ -300,5 +369,43 @@ async def execute_action(
                 ))
         await db.commit()
         return {"executed": True, "action_type": payload.action_type, "plan_id": plan.id}
+
+    if payload.action_type == "mark_restocked":
+        item_name = args.get("item_name")
+        if not item_name:
+            raise HTTPException(status_code=400, detail="item_name is required")
+
+        result = await db.execute(
+            select(RestockPlanItem)
+            .join(Item, RestockPlanItem.item_id == Item.id)
+            .where(Item.name.ilike(f"%{item_name}%"), RestockPlanItem.is_restocked == False)  # noqa: E712
+            .order_by(RestockPlanItem.id.desc())
+        )
+        plan_item = result.scalars().first()
+        if not plan_item:
+            raise HTTPException(status_code=404, detail=f"No open restock plan item found matching '{item_name}'")
+
+        purchase_date = date.fromisoformat(args["actual_purchase_date"]) if args.get("actual_purchase_date") else date.today()
+        expiry_date = date.fromisoformat(args["actual_expiry_date"]) if args.get("actual_expiry_date") else None
+
+        plan_item.is_restocked = True
+        plan_item.actual_price_per_pack = args["actual_price_per_pack"]
+        plan_item.actual_purchase_date = purchase_date
+        plan_item.actual_expiry_date = expiry_date
+        plan_item.restocked_at = datetime.now(timezone.utc)
+
+        db.add(Batch(
+            item_id=plan_item.item_id,
+            purchase_date=purchase_date,
+            expiry_date=expiry_date,
+            pack_quantity=plan_item.packs_to_buy,
+            units_per_pack=plan_item.units_per_pack,
+            unit_price=args["actual_price_per_pack"],
+            notes=f"Added via Restock Plan #{plan_item.plan_id} (assistant)",
+            added_by_id=current_user.id,
+            is_active=True,
+        ))
+        await db.commit()
+        return {"executed": True, "action_type": payload.action_type, "item": item_name}
 
     raise HTTPException(status_code=400, detail=f"Unknown action_type {payload.action_type}")

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Take Item{% endblock %}
+{% block page_title %}Take Item from Store{% endblock %}
+{% block breadcrumb %}Stock Movement → Take Item{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">🛒 Record Withdrawal</span></div>
+    <div class="card-body">
+      <div class="alert alert-info">ℹ️ Stock is deducted from the <strong>oldest batch first</strong> (FIFO). This ensures older stock is used before newer stock.</div>
+      <form method="post"><div class="form-group">
+          <label class="form-label">Select Item *</label>
+          <select name="item_id" id="id_item" class="form-control" required>
+            <option value="">— Select item —</option>
+            {% for it in items %}<option value="{{ it.id }}">{{ it }}</option>{% endfor %}
+          </select>
+          {% if errors and errors.item %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ errors.item }}</div>{% endif %}
+        </div>
+        <div id="stock-info" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><div class="text-muted text-sm">Available Stock</div><div id="stock-available" style="font-size:22px;font-weight:800;color:var(--navy-dark);"></div></div>
+            <div id="stock-status-badge"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantity to Take *</label>
+          <input type="number" step="0.01" min="0.01" name="quantity_taken" id="id_quantity_taken" class="form-control" required>
+          {% if errors and errors.quantity_taken %}<div style="color:var(--red);font-size:12px;margin-top:4px;">{{ errors.quantity_taken }}</div>{% endif %}
+        </div>
+        <div class="form-group"><label class="form-label">Purpose</label><input type="text" name="purpose" id="id_purpose" class="form-control"></div>
+        <div class="form-group"><label class="form-label">Additional Notes</label><textarea name="notes" id="id_notes" class="form-control" rows="2"></textarea></div>
+        <button type="submit" class="btn btn-accent" style="width:100%;justify-content:center;padding:12px;font-size:15px;">✅ Confirm Withdrawal</button>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">How it works</span></div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:32px;height:32px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">1</div><div><strong>Pick the item</strong><br><span class="text-muted text-sm">Only items with available stock are shown.</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:32px;height:32px;background:var(--navy);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">2</div><div><strong>Enter quantity</strong><br><span class="text-muted text-sm">How many units are you taking out?</span></div></div>
+        <div style="display:flex;gap:12px;align-items:flex-start;"><div style="width:32px;height:32px;background:var(--accent);color:var(--navy-dark);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;">3</div><div><strong>System records it</strong><br><span class="text-muted text-sm">Oldest batch is deducted first. Your name and timestamp are saved automatically.</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const itemSelect=document.getElementById('id_item');
+const stockInfo=document.getElementById('stock-info'),stockAvail=document.getElementById('stock-available'),stockBadge=document.getElementById('stock-status-badge');
+const BC={'good':'badge-good','moderate':'badge-moderate','low':'badge-low','out':'badge-out'};
+const BL={'good':'Well Stocked','moderate':'Moderate','low':'Low Stock','out':'Out of Stock'};
+itemSelect.addEventListener('change',function(){
+  const id=this.value;
+  if(!id){stockInfo.style.display='none';return;}
+  fetch('/withdrawals/item-info/?item_id='+id).then(r=>r.json()).then(data=>{
+    stockInfo.style.display='block';
+    stockAvail.textContent=data.available+' '+data.unit_type;
+    stockBadge.innerHTML='<span class="badge '+BC[data.status]+'">'+BL[data.status]+'</span>';
+  });
+});
+</script>
+{% endblock %}

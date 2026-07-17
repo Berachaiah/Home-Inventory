@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}{% if is_first_batch %}First Batch — {{ item }}{% else %}Add Batch — {{ item }}{% endif %}{% endblock %}
+{% block page_title %}{% if is_first_batch %}Step 2 of 2 — First Stock Batch{% else %}Add Stock Batch{% endif %}{% endblock %}
+{% block breadcrumb %}{{ item }} → {% if is_first_batch %}First Batch{% else %}Add Batch{% endif %}{% endblock %}
+{% block content %}
+{% if is_first_batch %}
+<div class="alert alert-success" style="margin-bottom:20px;">
+  ✅ <strong>Item "{{ item }}" created!</strong> Now record the first stock purchase. This tells the system how much you have, when it expires, and what you paid.
+</div>
+{% else %}
+<div class="alert alert-info" style="margin-bottom:20px;">
+  📦 <strong>Recording a new purchase.</strong> Each purchase is a separate batch so the system can track different expiry dates and prices for the same product.
+</div>
+{% endif %}
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;align-items:start;">
+  <div class="card">
+    <div class="card-header"><span class="card-title">{% if is_first_batch %}First Batch for: <strong>{{ item }}</strong>{% else %}New Batch for: <strong>{{ item }}</strong>{% endif %}</span></div>
+    <div class="card-body">
+      <form method="post"><div class="form-grid-2">
+          <div class="form-group">
+            <label class="form-label">Purchase Date *</label>
+            <p class="form-hint" style="margin-bottom:6px;">When was this stock purchased?</p>
+            <input type="date" name="purchase_date" id="id_purchase_date" class="form-control" value="{{ batch.purchase_date if batch else today }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expiry Date {% if not is_first_batch %}<span class="text-muted text-sm">(optional)</span>{% else %}*{% endif %}</label>
+            <p class="form-hint" style="margin-bottom:6px;">{% if is_first_batch %}Check the product packaging. Leave blank only if the product genuinely has no expiry date.{% else %}Leave blank if no expiry date applies.{% endif %}</p>
+            <input type="date" name="expiry_date" id="id_expiry_date" class="form-control" value="{{ batch.expiry_date if batch else '' }}">
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group">
+            <label class="form-label">Number of Packs *</label>
+            <p class="form-hint" style="margin-bottom:6px;">How many packs did you buy? e.g. 2 cartons → enter 2.</p>
+            <input type="number" step="0.01" min="0.01" name="pack_quantity" id="id_pack_quantity" class="form-control" value="{{ batch.pack_quantity if batch else 1 }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Units Per Pack *</label>
+            <p class="form-hint" style="margin-bottom:6px;">Items inside each pack. e.g. 1 carton = 12 bottles → enter 12. Single item → enter 1.</p>
+            <input type="number" step="0.01" min="0.01" name="units_per_pack" id="id_units_per_pack" class="form-control" value="{{ batch.units_per_pack if batch else 1 }}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Price Per Pack (₦)</label>
+            <p class="form-hint" style="margin-bottom:6px;">Cost per pack. Used for restock estimates. Only Admins see prices.</p>
+            <input type="number" step="0.01" min="0" name="unit_price" id="id_unit_price" class="form-control" value="{{ batch.unit_price if batch else 0 }}">
+          </div>
+        </div>
+        <div id="total-preview" style="background:var(--accent-light);border:1px solid var(--accent);border-radius:8px;padding:12px 16px;margin-bottom:18px;display:none;">
+          📦 Total units: <strong id="total-units">—</strong> &nbsp;|&nbsp; 💰 Total cost: <strong id="total-cost">—</strong>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes <span class="text-muted text-sm">(optional)</span></label>
+          <p class="form-hint" style="margin-bottom:6px;">Supplier, discount, or storage notes.</p>
+          <textarea name="notes" id="id_notes" class="form-control" rows="2">{{ batch.notes if batch else '' }}</textarea>
+        </div>
+        <div class="flex-gap mt-2">
+          <button type="submit" class="btn btn-success">{% if is_first_batch %}✅ Save & Finish{% else %}Add Batch{% endif %}</button>
+          <a href="{{ url_for('item_detail', item.id) }}" class="btn btn-outline">{% if is_first_batch %}Skip for now{% else %}Cancel{% endif %}</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><span class="card-title">💡 What is a batch?</span></div>
+    <div class="card-body">
+      <p style="font-size:13.5px;line-height:1.7;color:#334155;">A <strong>batch</strong> is one purchase of an item. Every time you buy more stock, you add a new batch — even if it's the same product.</p>
+      <br>
+      <div style="background:var(--navy-dark);border-radius:10px;padding:14px 16px;">
+        <div style="color:rgba(255,255,255,0.5);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">Example</div>
+        <div style="color:white;font-size:13px;line-height:1.8;">
+          Batch 1 → Jan 5 → Expires Mar 1<br>
+          Batch 2 → Jan 12 → Expires Mar 8<br><br>
+          <span style="color:var(--accent);font-weight:600;">System uses Batch 1 first</span> — older stock consumed first (FIFO).
+        </div>
+      </div>
+      <br>
+      <p style="font-size:12px;color:var(--grey);"><strong>FIFO</strong> = First In, First Out. Older stock is always used before newer stock, reducing waste.</p>
+    </div>
+  </div>
+</div>
+<script>
+const packs=document.getElementById('id_pack_quantity'),units=document.getElementById('id_units_per_pack'),price=document.getElementById('id_unit_price');
+const preview=document.getElementById('total-preview'),totalEl=document.getElementById('total-units'),costEl=document.getElementById('total-cost');
+function upd(){const p=parseFloat(packs.value)||0,u=parseFloat(units.value)||0,pr=parseFloat(price.value)||0;if(p>0&&u>0){preview.style.display='block';totalEl.textContent=(p*u)+' {{ item.unit_type }}';costEl.textContent=pr>0?'₦'+(p*pr).toLocaleString():'not entered';}else{preview.style.display='none';}}
+packs.addEventListener('input',upd);units.addEventListener('input',upd);price.addEventListener('input',upd);
+</script>
+{% endblock %}

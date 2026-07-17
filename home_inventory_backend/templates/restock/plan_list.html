@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Restock Planner{% endblock %}
+{% block page_title %}Restock Planner{% endblock %}
+{% block breadcrumb %}Budget & Restocking{% endblock %}
+{% block top_actions %}
+<a href="{{ url_for('plan_create') }}" class="btn btn-primary" id="tour-new-plan">➕ New Restock Plan</a>
+{% endblock %}
+{% block content %}
+
+<div class="alert alert-info" style="margin-bottom:20px;">
+  🛒 <strong>Plan your restocking trips.</strong> Create a plan, add the items you need to buy, set quantities and estimated prices, and get a total budget. When you return from shopping, mark each item as restocked and the system automatically updates the inventory.
+</div>
+
+{% if low_count > 0 %}
+<div class="alert alert-warning" style="margin-bottom:20px;">
+  ⚠️ <strong>{{ low_count }} item{{ low_count|pluralize }} currently low or out of stock.</strong>
+  <a href="{{ url_for('plan_create') }}" style="color:var(--amber);font-weight:700;margin-left:8px;">Create a restock plan →</a>
+</div>
+{% endif %}
+
+{% if plans %}
+<div style="display:flex;flex-direction:column;gap:16px;" id="tour-plan-list">
+  {% for plan in plans %}
+  <div class="card">
+    <div class="card-body" style="padding:20px 22px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+            <a href="{{ url_for('plan_detail', plan.id) }}" style="font-size:16px;font-weight:700;color:var(--navy-dark);text-decoration:none;">{{ plan.name }}</a>
+            <span class="badge {% if plan.status == 'done' %}badge-ok{% elif plan.status == 'shopping' %}badge-moderate{% else %}badge-none{% endif %}">
+              {% if plan.status == 'draft' %}📝 Draft{% elif plan.status == 'shopping' %}🛒 Shopping{% else %}✅ Completed{% endif %}
+            </span>
+          </div>
+          <div class="text-muted text-sm">
+            Created {{ plan.created_at|djdate('d M Y') }} by {{ plan.created_by.full_name() if plan.created_by else 'Unknown' }}
+            &nbsp;·&nbsp; {{ plan.items|length }} item{{ plan.items|length|pluralize }}
+            &nbsp;·&nbsp; {{ restocked_count(plan.items) }} restocked
+          </div>
+          {% if plan.notes %}<div class="text-muted text-sm mt-1">{{ plan.notes }}</div>{% endif %}
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          {% if user.is_admin() %}
+          <div style="text-align:right;">
+            <div style="font-size:20px;font-weight:800;color:var(--navy-dark);">₦{{ plan.total_estimated_cost()|floatformat(0) }}</div>
+            <div class="text-muted text-sm">estimated total</div>
+          </div>
+          {% endif %}
+          <div class="flex-gap">
+            <a href="{{ url_for('plan_detail', plan.id) }}" class="btn btn-primary btn-sm">Open</a>
+            <a href="{{ url_for('plan_print', plan.id) }}" class="btn btn-outline btn-sm" target="_blank">🖨 Print</a>
+            <a href="{{ url_for('plan_delete', plan.id) }}" class="btn btn-danger btn-sm">Delete</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      {% set total = plan.items|length %}
+      {% set done = restocked_count(plan.items) %}
+      {% if total > 0 %}
+      <div style="margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <span class="text-sm text-muted">Restock progress</span>
+          <span class="text-sm text-muted">{{ done }}/{{ total }} items restocked</span>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:6px;overflow:hidden;">
+          <div style="height:100%;border-radius:4px;background:var(--green);width:{{ widthratio(done, total, 100) }}%;transition:width 0.3s;"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card">
+  <div class="empty-state" style="padding:60px;">
+    <div class="empty-icon">🛒</div>
+    <p style="font-size:15px;font-weight:600;margin-bottom:8px;">No restock plans yet</p>
+    <p class="text-muted" style="margin-bottom:20px;">Create a plan to track what needs buying, set your budget, and mark items off when you return from shopping.</p>
+    <a href="{{ url_for('plan_create') }}" class="btn btn-primary">➕ Create Your First Plan</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block tour_script %}
+<script>
+function startTour() {
+  introJs().setOptions({
+    steps: [
+      { intro: "<strong>🛒 Restock Planner</strong><br><br>This is where you plan your shopping trips. Instead of guessing what to buy, the system helps you build a precise list with quantities and estimated costs." },
+      { element: '#tour-new-plan', intro: "<strong>Create a Plan</strong><br><br>Start a new restock plan. You can give it a name like 'July Shopping' and the system will automatically suggest items that are low or out of stock.", position: 'bottom' },
+      {% if plans %}{ element: '#tour-plan-list', intro: "<strong>Your Plans</strong><br><br>Each plan shows its status, number of items, and total estimated cost. Open a plan to see the full breakdown, update quantities, or mark items as bought.", position: 'top' },{% endif %}
+      { intro: "<strong>💡 How to use the Restock Planner</strong><br><br>1. Create a plan before you go shopping<br>2. Add all items you need to buy<br>3. Set quantities and estimated prices<br>4. Print or view on your phone at the market<br>5. When you return, mark each item as restocked — the inventory updates automatically" },
+    ],
+    showProgress: true, showBullets: false, exitOnOverlayClick: false,
+    nextLabel: 'Next →', prevLabel: '← Back', doneLabel: '✅ Got it!', skipLabel: 'Skip',
+    tooltipClass: 'akanbi-tour',
+  }).start();
+}
+</script>
+<style>
+.akanbi-tour .introjs-tooltip{max-width:340px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.akanbi-tour .introjs-tooltiptext{font-size:14px;line-height:1.6;color:#1e293b;}
+.akanbi-tour .introjs-button{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;border-radius:7px;padding:7px 16px;}
+.akanbi-tour .introjs-nextbutton{background:#1a3c5e;color:white;border-color:#1a3c5e;}
+.akanbi-tour .introjs-nextbutton:hover{background:#2a5480;}
+.akanbi-tour .introjs-prevbutton{color:#1a3c5e;}
+.akanbi-tour .introjs-skipbutton{color:#64748b;font-size:13px;}
+.akanbi-tour .introjs-progressbar{background:#1a3c5e;}
+.introjs-helperLayer{border-radius:10px;}
+</style>
+{% endblock %}

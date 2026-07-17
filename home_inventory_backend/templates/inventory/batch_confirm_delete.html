@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}Delete Batch #{{ batch.id }}{% endblock %}
+{% block page_title %}Delete Batch{% endblock %}
+{% block content %}
+<div class="card" style="max-width:480px;"><div class="card-body" style="text-align:center;padding:40px;">
+  <div style="font-size:48px;margin-bottom:16px;">⚠️</div>
+  <h2 style="margin-bottom:8px;">Delete Batch #{{ batch.id }}?</h2>
+  <p class="text-muted">Item: <strong>{{ batch.item }}</strong></p>
+  <p class="text-muted mb-3">Purchased: {{ batch.purchase_date }} — {{ batch.total_units() }} units total</p>
+  <form method="post"><div class="flex-gap" style="justify-content:center;">
+      <button type="submit" class="btn btn-danger">Yes, Delete</button>
+      <a href="{{ url_for('item_detail', batch.item.id) }}" class="btn btn-outline">Cancel</a>
+    </div>
+  </form>
+</div></div>
+{% endblock %}

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date as date_cls, datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -6,7 +6,7 @@ from sqlalchemy import select
 from typing import List
 
 from database import get_db
-from models import RestockPlan, RestockPlanItem, Item, User, StatusEnum
+from models import RestockPlan, RestockPlanItem, Item, Batch, User, StatusEnum
 from schemas import RestockPlanCreate, RestockPlanOut, RestockPlanItemCreate, RestockPlanItemOut
 from auth import get_current_user, require_manager
 
@@ -59,19 +59,69 @@ async def add_plan_item(plan_id: int, payload: RestockPlanItemCreate, db: AsyncS
     return _serialize_plan(plan)
 
 
+@router.get("/{plan_id}", response_model=RestockPlanOut)
+async def get_plan(plan_id: int, db: AsyncSession = Depends(get_db), _=Depends(get_current_user)):
+    plan = await db.get(RestockPlan, plan_id, options=[selectinload(RestockPlan.items)])
+    if not plan:
+        raise HTTPException(status_code=404, detail="Restock plan not found")
+    return _serialize_plan(plan)
+
+
+@router.delete("/{plan_id}")
+async def delete_plan(plan_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_manager)):
+    plan = await db.get(RestockPlan, plan_id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Restock plan not found")
+    await db.delete(plan)
+    await db.commit()
+    return {"deleted": True}
+
+
+@router.delete("/items/{plan_item_id}")
+async def delete_plan_item(plan_item_id: int, db: AsyncSession = Depends(get_db), _=Depends(require_manager)):
+    plan_item = await db.get(RestockPlanItem, plan_item_id)
+    if not plan_item:
+        raise HTTPException(status_code=404, detail="Restock plan item not found")
+    await db.delete(plan_item)
+    await db.commit()
+    return {"deleted": True}
+
+
 @router.post("/items/{plan_item_id}/mark-restocked", response_model=RestockPlanItemOut)
 async def mark_restocked(
     plan_item_id: int,
     actual_price_per_pack: float,
+    actual_purchase_date: str | None = None,
+    actual_expiry_date: str | None = None,
     db: AsyncSession = Depends(get_db),
-    _=Depends(require_manager),
+    current_user: User = Depends(require_manager),
 ):
+    """Marks a plan item restocked AND creates a real Batch from it, mirroring akanbi_inventory."""
     plan_item = await db.get(RestockPlanItem, plan_item_id)
     if not plan_item:
         raise HTTPException(status_code=404, detail="Restock plan item not found")
+
+    purchase_date = date_cls.fromisoformat(actual_purchase_date) if actual_purchase_date else date_cls.today()
+    expiry_date = date_cls.fromisoformat(actual_expiry_date) if actual_expiry_date else None
+
     plan_item.is_restocked = True
     plan_item.actual_price_per_pack = actual_price_per_pack
+    plan_item.actual_purchase_date = purchase_date
+    plan_item.actual_expiry_date = expiry_date
     plan_item.restocked_at = datetime.now(timezone.utc)
+
+    db.add(Batch(
+        item_id=plan_item.item_id,
+        purchase_date=purchase_date,
+        expiry_date=expiry_date,
+        pack_quantity=plan_item.packs_to_buy,
+        units_per_pack=plan_item.units_per_pack,
+        unit_price=actual_price_per_pack,
+        notes=f"Added via Restock Plan #{plan_item.plan_id}",
+        added_by_id=current_user.id,
+        is_active=True,
+    ))
+
     await db.commit()
     await db.refresh(plan_item)
     out = RestockPlanItemOut.model_validate(plan_item)

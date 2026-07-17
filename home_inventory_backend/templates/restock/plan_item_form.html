@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Edit Plan Item{% endblock %}
+{% block page_title %}Edit Plan Item{% endblock %}
+{% block breadcrumb %}{{ pi.plan.name }} → Edit {{ pi.item }}{% endblock %}
+{% block content %}
+<div class="card" style="max-width:560px;">
+  <div class="card-header"><span class="card-title">Edit: <strong>{{ pi.item }}</strong></span></div>
+  <div class="card-body">
+    <form method="post">
+      <div class="form-group"><label class="form-label">Packs to Buy</label><input type="number" step="0.01" min="0.01" name="packs_to_buy" class="form-control" value="{{ pi.packs_to_buy }}" required></div>
+      <div class="form-group"><label class="form-label">Units per Pack</label><input type="number" step="0.01" min="0.01" name="units_per_pack" class="form-control" value="{{ pi.units_per_pack }}" required></div>
+      <div class="form-group"><label class="form-label">Estimated Price per Pack (₦)</label><input type="number" step="0.01" min="0" name="estimated_price_per_pack" class="form-control" value="{{ pi.estimated_price_per_pack }}"></div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea name="notes" class="form-control" rows="2">{{ pi.notes }}</textarea></div>
+      <div class="flex-gap mt-2">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{{ url_for('plan_detail', pi.plan.id) }}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

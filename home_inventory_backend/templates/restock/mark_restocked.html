@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Mark as Restocked — {{ pi.item }}{% endblock %}
+{% block page_title %}Mark as Restocked{% endblock %}
+{% block breadcrumb %}{{ pi.plan.name }} → {{ pi.item }} → Restocked{% endblock %}
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;">
+  <div class="card" id="tour-form">
+    <div class="card-header"><span class="card-title">✅ Confirm Restock — <strong>{{ pi.item }}</strong></span></div>
+    <div class="card-body">
+      <div class="alert alert-success" style="margin-bottom:20px;">
+        🎉 You bought <strong>{{ pi.item }}</strong>! Fill in the details below. The system will automatically create a new inventory batch — you don't need to do anything else.
+      </div>
+      <form method="post"><div class="form-grid-2">
+          <div class="form-group" id="tour-purchase-date">
+            <label class="form-label">Purchase Date *</label>
+            <p class="form-hint" style="margin-bottom:6px;">When did you buy this? Defaults to today.</p>
+            <input type="date" name="actual_purchase_date" id="id_actual_purchase_date" class="form-control" value="{{ today }}" required>
+          </div>
+          <div class="form-group" id="tour-expiry">
+            <label class="form-label">Expiry Date</label>
+            <p class="form-hint" style="margin-bottom:6px;">Check the product packaging and enter the expiry date. This is how the system will alert you before it expires.</p>
+            <input type="date" name="actual_expiry_date" id="id_actual_expiry_date" class="form-control">
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-group"><label class="form-label">Packs Bought *</label><p class="form-hint" style="margin-bottom:6px;">How many packs did you buy?</p><input type="number" step="0.01" min="0.01" name="packs_to_buy" id="id_packs_to_buy" class="form-control" value="{{ pi.packs_to_buy }}" required></div>
+          <div class="form-group"><label class="form-label">Units Per Pack *</label><p class="form-hint" style="margin-bottom:6px;">Items inside each pack.</p><input type="number" step="0.01" min="0.01" name="units_per_pack" id="id_units_per_pack" class="form-control" value="{{ pi.units_per_pack }}" required></div>
+          <div class="form-group" id="tour-price"><label class="form-label">Actual Price/Pack (₦)</label><p class="form-hint" style="margin-bottom:6px;">What did you actually pay? Helps update the budget estimate for next time.</p><input type="number" step="0.01" min="0" name="actual_price_per_pack" id="id_actual_price_per_pack" class="form-control" value="{{ pi.estimated_price_per_pack }}"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Notes <span class="text-muted text-sm">(optional)</span></label><textarea name="notes" id="id_notes" class="form-control" rows="2"></textarea></div>
+        <div class="flex-gap mt-2">
+          <button type="submit" class="btn btn-success" id="tour-confirm">✅ Confirm — Add to Inventory</button>
+          <a href="{{ url_for('plan_detail', pi.plan.id) }}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="card" id="tour-what-happens">
+    <div class="card-header"><span class="card-title">What happens when you confirm</span></div>
+    <div class="card-body">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--green);font-size:18px;flex-shrink:0;">✅</span><span>This item is marked as <strong>restocked</strong> in the plan — it moves from "Still to Buy" to "Already Restocked".</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--green);font-size:18px;flex-shrink:0;">📦</span><span>A new <strong>batch is created automatically</strong> in the inventory with the purchase date, expiry date, quantity, and price you enter here.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--green);font-size:18px;flex-shrink:0;">📅</span><span>The expiry date is tracked and you'll be <strong>alerted on the dashboard</strong> before it expires.</span></div>
+        <div style="display:flex;gap:10px;align-items:flex-start;"><span style="color:var(--green);font-size:18px;flex-shrink:0;">🔄</span><span>Stock levels on the dashboard <strong>update immediately</strong> — the item will no longer show as Low Stock.</span></div>
+      </div>
+      <div class="divider"></div>
+      <div style="background:var(--bg);border-radius:8px;padding:14px;">
+        <div class="text-muted text-sm" style="margin-bottom:8px;">Planned quantity</div>
+        <div style="font-size:16px;font-weight:700;">{{ pi.packs_to_buy }} pack{{ pi.packs_to_buy|pluralize }} × {{ pi.units_per_pack }} units/pack</div>
+        {% if user.is_admin() and pi.estimated_price_per_pack > 0 %}
+        <div class="text-muted text-sm" style="margin-top:4px;">Estimated: ₦{{ pi.estimated_price_per_pack|floatformat(0) }}/pack</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block tour_script %}
+<script>
+function startTour(){
+  introJs().setOptions({
+    steps:[
+      {intro:"<strong>✅ Mark as Restocked</strong><br><br>You've returned from shopping! Fill in this form for <strong>{{ pi.item }}</strong> and the inventory will update automatically — no extra steps needed."},
+      {element:document.getElementById('tour-purchase-date'),intro:"<strong>Purchase Date</strong><br><br>When did you buy this? It defaults to today. This date matters because the system uses it to determine which batch to consume first — older batches are always used before newer ones.",position:'right'},
+      {element:document.getElementById('tour-expiry'),intro:"<strong>Expiry Date — Important!</strong><br><br>Check the product packaging and enter the exact expiry date. This is how the system will alert you on the dashboard before the product expires. Don't skip this for food and perishable items.",position:'right'},
+      {element:document.getElementById('tour-price'),intro:"<strong>Actual Price</strong><br><br>Enter what you actually paid — this may differ from the estimate. The system uses the latest price to update future restock cost estimates.",position:'top'},
+      {element:document.getElementById('tour-confirm'),intro:"<strong>Confirm</strong><br><br>Once you click this, the batch is created automatically and stock levels update instantly. You'll be taken back to the restock plan where this item will show under 'Already Restocked'.",position:'top'},
+      {element:document.getElementById('tour-what-happens'),intro:"<strong>Everything is automatic</strong><br><br>You don't need to separately go to 'Add Item → Add Batch'. Confirming this form does all of that for you in one step.",position:'left'},
+    ],
+    showProgress:true,showBullets:false,exitOnOverlayClick:false,
+    nextLabel:'Next →',prevLabel:'← Back',doneLabel:'✅ Got it!',skipLabel:'Skip',
+    tooltipClass:'akanbi-tour',
+  }).start();
+}
+</script>
+<style>
+.akanbi-tour .introjs-tooltip{max-width:340px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.18);}
+.akanbi-tour .introjs-tooltiptext{font-size:14px;line-height:1.6;color:#1e293b;}
+.akanbi-tour .introjs-button{font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:600;border-radius:7px;padding:7px 16px;}
+.akanbi-tour .introjs-nextbutton{background:#1a3c5e;color:white;border-color:#1a3c5e;}
+.akanbi-tour .introjs-nextbutton:hover{background:#2a5480;}
+.akanbi-tour .introjs-prevbutton{color:#1a3c5e;}
+.akanbi-tour .introjs-skipbutton{color:#64748b;font-size:13px;}
+.akanbi-tour .introjs-progressbar{background:#1a3c5e;}
+.introjs-helperLayer{border-radius:10px;}
+</style>
+{% endblock %}
