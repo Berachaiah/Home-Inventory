@@ -127,6 +127,17 @@
 }
 #ai-send:hover{background:#2a5480;}
 #ai-send:disabled{background:#cbd5e1;cursor:not-allowed;}
+
+.pwa-install-modal {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    z-index: 9999 !important;
+    background: transparent !important;
+    display: none; /* Controlled via JS */
+}
 </style>
 </head>
 <div id="pwaInstallModal" class="pwa-install-modal">
@@ -137,9 +148,7 @@
 
         <h2>Install Home Inventory</h2>
 
-        <p>
-            access from your home screen.
-        </p>
+        <p>Install this app for quicker access and an app-like experience.</p>
 
         <div class="pwa-buttons">
 
