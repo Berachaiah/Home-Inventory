@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login - Home Inventory</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#1a3c5e">
     <link rel="stylesheet" href="/static/css/preloader.css">
     <style>
@@ -84,7 +84,7 @@
         <p style="margin-top: 20px; font-size: 12px; color: #94a3b8;">Contact your administrator if you need access.</p>
     </div>
 
-    <!-- Universal PWA prompt modal wrapper -->
+    <!-- PWA Installation Modal Layout Framework -->
     <div id="pwaInstallModal" style="position: fixed !important; bottom: 16px !important; left: 16px !important; right: 16px !important; z-index: 999999 !important; background: #1a3c5e !important; color: white !important; padding: 16px !important; border-radius: 12px !important; box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important; max-width: 400px !important; margin: 0 auto !important; display: none;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
             <img src="/static/icons/icon-192.png" style="width: 48px; height: 48px; border-radius: 8px;">
@@ -99,25 +99,55 @@
         </div>
     </div>
 
-    <script src="/static/js/pwa-install.js" defer></script>
     <script>
         window.addEventListener("load", function() {
+            // Dismiss Preloader View
             const preloader = document.getElementById("app-preloader");
             if (preloader) {
                 preloader.style.opacity = "0";
                 setTimeout(() => preloader.remove(), 400);
             }
-            
-            // Debugging script fallback check: Force modal visualization if criteria match
-            setTimeout(() => {
-                let deferredPrompt;
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    deferredPrompt = e;
-                    const modal = document.getElementById('pwaInstallModal');
-                    if(modal) modal.style.setProperty('display', 'block', 'important');
+
+            // Universal Native PWA Event Orchestration Interceptor
+            let deferredPrompt;
+            const modal = document.getElementById('pwaInstallModal');
+            const btnInstall = document.getElementById('btnInstall');
+            const btnCancel = document.getElementById('btnCancel');
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // Prevent mini-infobar prompt from popping down automatically
+                e.preventDefault();
+                deferredPrompt = e;
+                
+                // Unveil custom Richer PWA installer UI module frame
+                if (modal) {
+                    modal.style.setProperty('display', 'block', 'important');
+                }
+            });
+
+            // Action Listener: Executing Installation Requests
+            if (btnInstall) {
+                btnInstall.addEventListener('click', async () => {
+                    if (!deferredPrompt) return;
+                    
+                    // Trigger the native installation modal prompt window
+                    deferredPrompt.prompt();
+                    
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User installation choice outcome: ${outcome}`);
+                    
+                    // Drop internal token references and close frame
+                    deferredPrompt = null;
+                    if (modal) modal.style.display = 'none';
                 });
-            }, 500);
+            }
+
+            // Action Listener: Dismissing Modal Panels
+            if (btnCancel) {
+                btnCancel.addEventListener('click', () => {
+                    if (modal) modal.style.display = 'none';
+                });
+            }
         });
     </script>
 </body>
