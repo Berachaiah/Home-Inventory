@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="/static/css/preloader.css">
 <link rel="icon" href="/static/favicon.ico" sizes="any">
 <link rel="icon" href="/static/icons/favicon-32x32.png" type="image/png" sizes="32x32">
 <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
@@ -166,7 +167,20 @@
 
 </div>
 
-<body>
+<body class="bg-slate-50 text-slate-800">
+    <div id="app-preloader">
+        <div class="preloader-spinner"></div>
+        <div class="preloader-text">Loading Home Inventory...</div>
+    </div>
+    <script>
+        window.addEventListener("load", function() {
+            const preloader = document.getElementById("app-preloader");
+            if (preloader) {
+                preloader.classList.add("preloader-hidden");
+                setTimeout(() => preloader.remove(), 400);
+            }
+        });
+    </script>
 <div class="layout">
 <aside class="sidebar fixed inset-y-0 left-0 z-40 w-64 -translate-x-full transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto">
   <div class="sidebar-brand">
