@@ -37,6 +37,21 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    return FileResponse(
+        "static/sw.js",
+        media_type="application/javascript",
+    )
+
+@app.get("/manifest.json", include_in_schema=False)
+async def manifest():
+    return FileResponse(
+        "manifest.json",
+        media_type="application/manifest+json",
+    )
+
+
 # ---- JSON API (unchanged, bearer-token auth; also now accepts the web session cookie) ----
 app.include_router(auth_routes.router)
 app.include_router(catalog_routes.router)
