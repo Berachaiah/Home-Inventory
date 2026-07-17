@@ -41,3 +41,49 @@
     opacity: 0 !important;
     visibility: hidden !important;
 }
+
+
+/* ========================================================
+   UNIVERSAL MOBILE SIDEBAR FRAMEWORK FIX (ALL PAGES)
+   ======================================================== */
+@media (max-width: 991px) {
+    /* Force any sidebar configuration to slide off-screen safely */
+    .sidebar, #sidebar, [class*="sidebar"], [id*="sidebar"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 280px !important;
+        height: 100vh !important;
+        height: -webkit-fill-available !important; /* Mobile safari fix */
+        z-index: 1050 !important;
+        transition: transform 0.3s ease-in-out, left 0.3s ease-in-out !important;
+        box-shadow: 0 0 20px rgba(0,0,0,0.3) !important;
+        overflow-y: auto !important;
+        display: block !important;
+    }
+
+    /* Standard toggle class trigger across any extended layouts */
+    .sidebar.active, #sidebar.active, 
+    .sidebar.show, #sidebar.show,
+    .sidebar-open .sidebar, .toggled .sidebar {
+        left: 0 !important;
+        transform: translateX(0) !important;
+    }
+
+    /* Prevent pages from sliding horizontally or creating split white gaps */
+    html, body {
+        overflow-x: hidden !important;
+        width: 100% !important;
+        position: relative !important;
+    }
+
+    /* Shift main content container to fill the screen on mobile frames */
+    .main-content, #main-content, .wrapper, [class*="content-wrapper"], main {
+        margin-left: 0 !important;
+        padding-left: 15px !important;
+        padding-right: 15px !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+}

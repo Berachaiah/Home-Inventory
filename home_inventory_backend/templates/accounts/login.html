@@ -84,7 +84,7 @@
         <p style="margin-top: 20px; font-size: 12px; color: #94a3b8;">Contact your administrator if you need access.</p>
     </div>
 
-    <!-- PWA banner component with working assets for Jinja2 environment -->
+    <!-- Universal PWA prompt modal wrapper -->
     <div id="pwaInstallModal" style="position: fixed !important; bottom: 16px !important; left: 16px !important; right: 16px !important; z-index: 999999 !important; background: #1a3c5e !important; color: white !important; padding: 16px !important; border-radius: 12px !important; box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important; max-width: 400px !important; margin: 0 auto !important; display: none;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
             <img src="/static/icons/icon-192.png" style="width: 48px; height: 48px; border-radius: 8px;">
@@ -107,6 +107,17 @@
                 preloader.style.opacity = "0";
                 setTimeout(() => preloader.remove(), 400);
             }
+            
+            // Debugging script fallback check: Force modal visualization if criteria match
+            setTimeout(() => {
+                let deferredPrompt;
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    const modal = document.getElementById('pwaInstallModal');
+                    if(modal) modal.style.setProperty('display', 'block', 'important');
+                });
+            }, 500);
         });
     </script>
 </body>
