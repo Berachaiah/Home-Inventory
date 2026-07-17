@@ -35,7 +35,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/static", StaticFiles(directory="home_inventory_backend/static"), name="static")
+import os
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 @app.api_route("/sw.js", methods=["GET", "HEAD"], include_in_schema=False)
 async def service_worker():
