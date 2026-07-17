@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "main.py",
+      "src": "home_inventory_backend/main.py",
       "use": "@vercel/python"
     }
   ],
@@ -16,8 +16,12 @@
       "dest": "/home_inventory_backend/static/manifest.json"
     },
     {
+      "src": "/static/(.*)",
+      "dest": "/home_inventory_backend/static/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "main.py"
+      "dest": "home_inventory_backend/main.py"
     }
   ]
 }
