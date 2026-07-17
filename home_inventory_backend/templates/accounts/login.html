@@ -9,4 +9,17 @@
 <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;">Sign In</button>
 </form>
 <p style="text-align:center;margin-top:20px;font-size:12px;color:var(--grey);">Contact your administrator if you need access.</p>
-</div></div></body></html>
+</div></div>
+    <div id="pwaInstallModal" class="pwa-install-modal">
+        <div class="pwa-install-card">
+            <img src="/static/icons/icon-192.png" class="pwa-icon">
+            <h2>Install Home Inventory</h2>
+            <p>Install this app for quicker access and an app-like experience.</p>
+            <div class="pwa-buttons">
+                <button id="btnInstall" class="pwa-btn install">Install</button>
+                <button id="btnCancel" class="pwa-btn cancel">Later</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/pwa-install.js" defer></script>
+</body></html>
