@@ -37,14 +37,14 @@ app.add_middleware(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/sw.js", include_in_schema=False)
+@app.api_route("/sw.js", methods=["GET", "HEAD"], include_in_schema=False)
 async def service_worker():
     return FileResponse(
         "static/sw.js",
         media_type="application/javascript",
     )
 
-@app.get("/manifest.json", include_in_schema=False)
+@app.api_route("/manifest.json", methods=["GET", "HEAD"], include_in_schema=False)
 async def manifest():
     return FileResponse(
         "manifest.json",
