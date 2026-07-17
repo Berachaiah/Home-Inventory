@@ -129,6 +129,36 @@
 #ai-send:disabled{background:#cbd5e1;cursor:not-allowed;}
 </style>
 </head>
+<div id="pwaInstallModal" class="pwa-install-modal">
+
+    <div class="pwa-install-card">
+
+        <img src="/static/icons/icon-192.png" class="pwa-icon">
+
+        <h2>Install Home Inventory</h2>
+
+        <p>
+            Install the app for a faster, full-screen experience with one-tap
+            access from your home screen.
+        </p>
+
+        <div class="pwa-buttons">
+
+            <button onclick="installPWA()" class="btn-primary">
+                Install
+            </button>
+
+            <button onclick="closePWAInstall()" class="btn-secondary">
+                Maybe Later
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="/static/js/pwa-install.js"></script>
 <body>
 <div class="layout">
 <aside class="sidebar">
