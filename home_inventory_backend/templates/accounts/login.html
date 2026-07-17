@@ -100,6 +100,15 @@
     </div>
 
     <script>
+        // 1. REGISTER SERVICE WORKER FOR STANDALONE ANDROID CONTAINER
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
+
         window.addEventListener("load", function() {
             // Dismiss Preloader View
             const preloader = document.getElementById("app-preloader");
@@ -115,34 +124,23 @@
             const btnCancel = document.getElementById('btnCancel');
 
             window.addEventListener('beforeinstallprompt', (e) => {
-                // Prevent mini-infobar prompt from popping down automatically
                 e.preventDefault();
                 deferredPrompt = e;
-                
-                // Unveil custom Richer PWA installer UI module frame
                 if (modal) {
                     modal.style.setProperty('display', 'block', 'important');
                 }
             });
 
-            // Action Listener: Executing Installation Requests
             if (btnInstall) {
                 btnInstall.addEventListener('click', async () => {
                     if (!deferredPrompt) return;
-                    
-                    // Trigger the native installation modal prompt window
                     deferredPrompt.prompt();
-                    
                     const { outcome } = await deferredPrompt.userChoice;
-                    console.log(`User installation choice outcome: ${outcome}`);
-                    
-                    // Drop internal token references and close frame
                     deferredPrompt = null;
                     if (modal) modal.style.display = 'none';
                 });
             }
 
-            // Action Listener: Dismissing Modal Panels
             if (btnCancel) {
                 btnCancel.addEventListener('click', () => {
                     if (modal) modal.style.display = 'none';
