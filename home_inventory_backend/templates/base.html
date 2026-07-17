@@ -493,9 +493,10 @@ setTimeout(function(){
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/static/sw.js").catch(console.error);
+    navigator.serviceWorker.register("/sw.js").catch(console.error);
   });
 }
 </script>
+    <script src="/static/js/pwa-manager.js"></script>
 </body>
 </html>
