@@ -6,7 +6,6 @@
   "start_url": "/login/",
   "display": "standalone",
   "background_color": "#0f172a",
-  "theme-color": "#1a3c5e",
   "icons": [
     {
       "src": "/static/icons/icon-192.png",
@@ -32,5 +31,7 @@
       "type": "image/png",
       "form_factor": "wide"
     }
-  ]
+  ],
+  "scope": "/",
+  "theme_color": "#1a3c5e"
 }

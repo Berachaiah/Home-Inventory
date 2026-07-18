@@ -5,8 +5,7 @@ const DASHBOARD_URL = "/dashboard/";
 const PRECACHE = [
   "/static/css/main.css",
   "/static/css/preloader.css",
-  LOGIN_URL,
-  DASHBOARD_URL
+  LOGIN_URL
 ];
 
 self.addEventListener("install", (event) => {
