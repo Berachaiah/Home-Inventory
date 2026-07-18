@@ -1,6 +1,6 @@
-const CACHE_NAME = "home-inventory-v1";
+const CACHE_NAME = "home-inventory-v2";
 const OFFLINE_URL = "/dashboard/";
-const PRECACHE = ["/static/css/main.css", "/static/favicon.ico", OFFLINE_URL];
+const PRECACHE = ["/static/css/main.css", "/static/favicon.ico", "/login/"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
